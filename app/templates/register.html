@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block extra_css %}
+<style>
+  .register-page {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1a1028 0%, #2d1b4e 30%, #3d2660 50%, #2d1b4e 70%, #1a1028 100%);
+    position: relative; overflow: hidden; padding: 20px;
+  }
+  .register-page::before {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(120,80,180,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(80,60,140,0.1) 0%, transparent 50%);
+  }
+
+  .register-card { width: 440px; max-width: 90vw; position: relative; z-index: 2; }
+
+  /* Avatar circle */
+  .avatar-circle {
+    width: 90px; height: 90px; border-radius: 50%;
+    background: #1e1233; border: 3px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto -45px; position: relative; z-index: 3;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .avatar-circle i { font-size: 36px; color: rgba(255,255,255,0.7); }
+
+  /* Glass card */
+  .glass-box {
+    background: rgba(120, 80, 170, 0.25);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 60px 36px 36px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  /* Labels */
+  .field-label {
+    display: block; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6);
+    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;
+  }
+
+  /* Input rows */
+  .input-row {
+    display: flex; align-items: center; background: rgba(255,255,255,0.9);
+    border-radius: 4px; margin-bottom: 16px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.3); transition: box-shadow 0.3s;
+  }
+  .input-row:focus-within { box-shadow: 0 0 0 2px rgba(120,80,200,0.5); background: #fff; }
+  .input-icon {
+    width: 46px; min-width: 46px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(100,70,160,0.15); color: #5b3a8c; font-size: 16px;
+    border-right: 1px solid rgba(100,70,160,0.15);
+  }
+  .input-row input {
+    flex: 1; border: none; outline: none; background: transparent;
+    padding: 12px 14px; font-size: 14px; color: #1e1233; font-family: 'Inter', sans-serif;
+  }
+  .input-row input::placeholder { color: #9a8bb5; }
+  .input-row .toggle-pwd {
+    background: none; border: none; cursor: pointer; padding: 0 14px;
+    color: #7c6a9c; font-size: 16px;
+  }
+
+  /* Role selector */
+  .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .role-card {
+    padding: 16px 12px; border-radius: 8px; text-align: center; cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);
+    transition: all 0.3s; color: rgba(255,255,255,0.6);
+  }
+  .role-card:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
+  .role-card.active {
+    border-color: rgba(180,150,255,0.6); background: rgba(120,80,200,0.2);
+    color: #fff; box-shadow: 0 0 20px rgba(120,80,200,0.15);
+  }
+  .role-card i { font-size: 24px; display: block; margin-bottom: 6px; }
+  .role-card .role-title { font-size: 14px; font-weight: 700; }
+  .role-card .role-sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+
+  /* Submit button */
+  .register-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 4px; cursor: pointer;
+    background: linear-gradient(135deg, #6c3bbf, #8b5cf6);
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; font-family: 'Inter', sans-serif;
+    transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 15px rgba(107,59,191,0.4);
+  }
+  .register-btn:hover { background: linear-gradient(135deg, #7c4dff, #a78bfa); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(107,59,191,0.5); }
+  .register-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+  /* Bottom */
+  .bottom-links { text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.5); }
+  .bottom-links a { color: rgba(200,170,255,0.8); font-weight: 600; text-decoration: none; }
+  .bottom-links a:hover { color: #fff; }
+
+  /* Alert */
+  .alert-error {
+    background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5; padding: 10px 14px; border-radius: 6px; font-size: 13px;
+    margin-bottom: 14px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .spinner { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block body %}
+<div x-data="registerApp()" class="register-page">
+  <div class="register-card">
+
+    <!-- Avatar -->
+    <div class="avatar-circle">
+      <i class="bi bi-person-plus"></i>
+    </div>
+
+    <!-- Glass Card -->
+    <div class="glass-box">
+      <!-- Error -->
+      <template x-if="error">
+        <div class="alert-error" x-transition>
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span x-text="error"></span>
+        </div>
+      </template>
+
+      <form @submit.prevent="submitForm">
+        <!-- Full Name -->
+        <span class="field-label">Full Name</span>
+        <div class="input-row">
+          <div class="input-icon"><i class="bi bi-person-fill"></i></div>
+          <input type="text" x-model="formData.fullname" placeholder="John Doe" required>
+        </div>
+
+        <!-- Email -->
+        <span class="field-label">Email Address</span>
+        <div class="input-row">
+          <div class="input-icon"><i class="bi bi-envelope-fill"></i></div>
+          <input type="email" x-model="formData.email" placeholder="you@example.com" required>
+        </div>
+
+        <!-- Password -->
+        <span class="field-label">Password</span>
+        <div class="input-row">
+          <div class="input-icon"><i class="bi bi-lock-fill"></i></div>
+          <input :type="showPassword ? 'text' : 'password'" x-model="formData.password" placeholder="Min. 6 characters" required minlength="6">
+          <button type="button" class="toggle-pwd" @click="showPassword = !showPassword">
+            <i class="bi" :class="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+          </button>
+        </div>
+
+        <!-- Role -->
+        <span class="field-label">Account Type</span>
+        <div class="role-grid">
+          <div class="role-card" :class="formData.role === 'candidate' ? 'active' : ''" @click="formData.role = 'candidate'">
+            <i class="bi bi-person-fill"></i>
+            <div class="role-title">Candidate</div>
+            <div class="role-sub">Take exams</div>
+          </div>
+          <div class="role-card" :class="formData.role === 'admin' ? 'active' : ''" @click="formData.role = 'admin'">
+            <i class="bi bi-shield-fill"></i>
+            <div class="role-title">Admin</div>
+            <div class="role-sub">Manage platform</div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" :disabled="isLoading" class="register-btn">
+          <svg x-show="isLoading" class="spinner" style="display:none;" width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span x-text="isLoading ? 'CREATING...' : 'CREATE ACCOUNT'"></span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Bottom -->
+    <div class="bottom-links">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function registerApp() {
+  return {
+    isLoading: false,
+    error: null,
+    showPassword: false,
+    formData: { fullname: '', email: '', password: '', role: 'candidate' },
+    async submitForm() {
+      this.error = null;
+      this.isLoading = true;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.formData)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.location = data.user.role === 'admin' ? '/admin-panel' : '/dashboard';
+        } else {
+          this.error = data.detail || 'Registration failed. Please try again.';
+        }
+      } catch (err) {
+        this.error = 'Network error. Please check your connection.';
+      } finally {
+        this.isLoading = false;
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

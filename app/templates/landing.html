@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+{% block body %}
+<!-- Navbar -->
+<nav class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-lg border-b border-slate-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <div class="flex items-center space-x-2">
+        <i class="bi bi-mortarboard-fill text-brand-600 text-2xl"></i>
+        <span class="text-xl font-bold bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent">MockExam Pro</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="/login" class="text-slate-600 hover:text-brand-600 font-semibold text-sm transition-colors">Login</a>
+        <a href="/register" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-lg font-semibold text-sm transition-all shadow-md shadow-brand-500/20">Get Started Free</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="relative min-h-screen flex items-center pt-16 overflow-hidden">
+  
+  <!-- Full background image -->
+  <div class="absolute inset-0 z-0">
+    <img src="/static/images/hero-bg.jpg" alt="" class="w-full h-full object-cover">
+    <!-- Gradient overlay: left image visible, right side white for text -->
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/70 to-white"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent from-20% via-white/90 via-50% to-white to-60%"></div>
+  </div>
+  
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+    <div class="flex items-center min-h-[85vh]">
+      
+      <!-- Spacer for the left image area -->
+      <div class="hidden lg:block flex-1"></div>
+
+      <!-- RIGHT: Text Content -->
+      <div class="flex-1 text-center lg:text-left py-16 lg:py-0 lg:pl-12">
+        <div class="inline-flex items-center space-x-2 bg-brand-50/90 backdrop-blur-sm border border-brand-200 text-brand-600 px-4 py-1.5 rounded-full text-sm font-semibold mb-8 shadow-sm">
+          <i class="bi bi-lightning-fill"></i>
+          <span>AI-Powered Assessment Platform</span>
+        </div>
+        
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight mb-6 tracking-tight">
+          Ace Every <span class="bg-gradient-to-r from-brand-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent">Assessment</span><br class="hidden sm:block"> With Confidence
+        </h1>
+        
+        <p class="text-lg sm:text-xl text-slate-600 mb-10 max-w-xl leading-relaxed">
+          Professional mock exams, real-time analytics, anti-cheating technology, and AI-driven insights — all in one platform trusted by top companies.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row flex-wrap gap-4 justify-center lg:justify-start mb-10">
+          <a href="/register" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3.5 rounded-xl font-bold text-lg transition-all shadow-xl shadow-brand-500/20 flex items-center justify-center">
+            Start Free Trial <i class="bi bi-arrow-right ml-2"></i>
+          </a>
+          <a href="#features" class="bg-white/90 backdrop-blur-sm border-2 border-slate-200 hover:border-slate-300 hover:bg-white text-slate-700 px-8 py-3.5 rounded-xl font-bold text-lg transition-all flex items-center justify-center">
+            Explore Features
+          </a>
+        </div>
+
+        <!-- Trust badges -->
+        <div class="flex flex-wrap items-center gap-6 justify-center lg:justify-start">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+              <i class="bi bi-check-circle-fill text-emerald-600 text-sm"></i>
+            </div>
+            <span class="text-sm font-semibold text-slate-700">50K+ Students</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
+              <i class="bi bi-building-fill text-brand-600 text-sm"></i>
+            </div>
+            <span class="text-sm font-semibold text-slate-700">200+ Companies</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+              <i class="bi bi-star-fill text-amber-600 text-sm"></i>
+            </div>
+            <span class="text-sm font-semibold text-slate-700">4.9/5 Rating</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-16 bg-slate-50 border-y border-slate-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <div>
+        <div class="text-4xl font-black bg-gradient-to-br from-brand-600 to-purple-600 bg-clip-text text-transparent mb-2">50K+</div>
+        <div class="text-slate-500 font-semibold uppercase tracking-wider text-xs">Active Candidates</div>
+      </div>
+      <div>
+        <div class="text-4xl font-black bg-gradient-to-br from-brand-600 to-purple-600 bg-clip-text text-transparent mb-2">500+</div>
+        <div class="text-slate-500 font-semibold uppercase tracking-wider text-xs">Assessments</div>
+      </div>
+      <div>
+        <div class="text-4xl font-black bg-gradient-to-br from-brand-600 to-purple-600 bg-clip-text text-transparent mb-2">200+</div>
+        <div class="text-slate-500 font-semibold uppercase tracking-wider text-xs">Companies</div>
+      </div>
+      <div>
+        <div class="text-4xl font-black bg-gradient-to-br from-brand-600 to-purple-600 bg-clip-text text-transparent mb-2">99.9%</div>
+        <div class="text-slate-500 font-semibold uppercase tracking-wider text-xs">Uptime</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-24 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-block bg-brand-100 text-brand-600 px-4 py-1.5 rounded-full text-sm font-semibold mb-4">Features</div>
+      <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Everything You Need to <span class="bg-gradient-to-r from-brand-400 to-cyan-400 bg-clip-text text-transparent">Succeed</span></h2>
+      <p class="text-slate-600 text-lg">Built for modern hiring teams and candidates who demand the best assessment experience.</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {% set features = [
+        ("bi-shield-lock-fill", "text-brand-600", "bg-brand-100", "Anti-Cheating", "Tab detection, webcam monitoring, and violation tracking keep exams fair."),
+        ("bi-lightning-fill", "text-purple-600", "bg-purple-100", "Real-time Analytics", "Live scores, leaderboards, and performance charts updated instantly."),
+        ("bi-robot", "text-cyan-600", "bg-cyan-100", "AI-Powered", "AI generates mock tests, analyzes skill gaps, and recommends learning paths."),
+        ("bi-clock-fill", "text-emerald-600", "bg-emerald-100", "Auto-Submit", "Smart timer with auto-save every 10 seconds and auto-submit on timeout."),
+        ("bi-bar-chart-fill", "text-amber-600", "bg-amber-100", "Deep Analytics", "Topic-wise analysis, score trends, and interview readiness scoring."),
+        ("bi-file-earmark-pdf-fill", "text-red-600", "bg-red-100", "PDF Reports", "Instant downloadable score cards with detailed question analysis.")
+      ] %}
+      {% for icon, txt_color, bg_color, title, desc in features %}
+      <div class="bg-slate-50 border border-slate-300 rounded-2xl p-6 hover:-translate-y-2 transition-transform duration-300">
+        <div class="w-14 h-14 {{bg_color}} rounded-xl flex items-center justify-center mb-6">
+          <i class="bi {{icon}} {{txt_color}} text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 mb-3">{{title}}</h3>
+        <p class="text-slate-600 leading-relaxed">{{desc}}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-br from-brand-50 to-purple-50 border-t border-slate-200">
+  <div class="max-w-4xl mx-auto px-4 text-center">
+    <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Ready to <span class="text-brand-600">Get Started?</span></h2>
+    <p class="text-lg text-slate-500 mb-10">Join thousands of candidates and companies already using MockExam Pro.</p>
+    <div class="flex flex-col sm:flex-row justify-center gap-4">
+      <a href="/register" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all shadow-lg shadow-brand-500/20">Create Free Account</a>
+      <a href="/login" class="bg-white border border-slate-300 hover:border-brand-300 hover:bg-slate-50 text-slate-700 px-8 py-3 rounded-lg font-semibold text-lg transition-all">Sign In</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-slate-50 py-8 border-t border-slate-200 text-center">
+  <p class="text-slate-500 text-sm">© 2024 MockExam Pro. Built with ❤️ using FastAPI & Tailwind CSS.</p>
+</footer>
+{% endblock %}

@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+<!-- Alpine Data Component -->
+<div x-data="dashboardApp()" x-init="initApp()" class="flex h-screen overflow-hidden bg-white text-slate-800">
+
+  <!-- Sidebar -->
+  <aside class="w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 absolute md:relative z-50 h-full" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+    <div class="h-16 flex items-center px-6 border-b border-slate-200">
+      <i class="bi bi-mortarboard-fill text-brand-600 text-xl mr-2"></i>
+      <span class="text-lg font-bold text-slate-900 tracking-tight whitespace-nowrap">MockExam Pro</span>
+    </div>
+    
+    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <template x-for="item in navItems">
+        <a href="#" @click.prevent="currentSection = item.id; if(window.innerWidth < 768) sidebarOpen = false;"
+           class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors"
+           :class="currentSection === item.id ? 'bg-brand-100 text-brand-600' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-600'">
+          <i :class="item.icon + (currentSection === item.id ? ' text-brand-500' : ' text-slate-500')" class="mr-3 text-lg"></i>
+          <span x-text="item.name"></span>
+        </a>
+      </template>
+      <div class="my-4 border-t border-slate-200"></div>
+      <a href="#" onclick="logout()" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+        <i class="bi bi-box-arrow-right mr-3 text-lg text-slate-500"></i>
+        Logout
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col overflow-hidden relative">
+    
+    <!-- Topbar -->
+    <header class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-40 sticky top-0">
+      <div class="flex items-center">
+        <button @click="sidebarOpen = !sidebarOpen" class="md:hidden p-2 rounded-md text-slate-600 hover:text-slate-900 focus:outline-none mr-3">
+          <i class="bi bi-list text-2xl"></i>
+        </button>
+        <h1 class="text-xl font-bold text-slate-900 capitalize" x-text="navItems.find(i => i.id === currentSection)?.name || 'Overview'"></h1>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-3 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-300">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center text-white font-bold text-sm shadow-sm" x-text="user?.fullname?.charAt(0) || 'U'"></div>
+          <span class="text-sm font-medium text-slate-900 hidden sm:block" x-text="user?.fullname || 'User'"></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+      
+      <!-- Overview Section -->
+      <div x-show="currentSection === 'overview'" x-transition.opacity.duration.300ms>
+        
+        <div class="bg-brand-50 border border-brand-200 rounded-2xl p-6 sm:p-8 mb-6 relative overflow-hidden">
+          <div class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+          <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-2 relative z-10">Welcome back, <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-purple-600" x-text="user?.fullname"></span>! 👋</h2>
+          <p class="text-slate-600 relative z-10">Ready to ace your next assessment? Let's go!</p>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+          <template x-for="stat in overviewStats">
+            <div class="bg-slate-50 border border-slate-300 rounded-xl p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
+              <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+                <i :class="stat.icon" class="text-4xl" :style="'color: ' + stat.color"></i>
+              </div>
+              <p class="text-xs font-bold text-slate-500 tracking-wider mb-1 uppercase" x-text="stat.label"></p>
+              <div class="text-3xl font-bold mb-1" :style="'color: ' + stat.color" x-text="stat.value"></div>
+              <p class="text-xs text-slate-500" x-text="stat.subtext"></p>
+            </div>
+          </template>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-slate-50 border border-slate-300 rounded-xl p-6 shadow-sm">
+            <h3 class="text-base font-semibold text-slate-900 mb-4">Performance Trend</h3>
+            <div id="chart-container" class="h-64 w-full"></div>
+          </div>
+          
+          <div class="bg-slate-50 border border-slate-300 rounded-xl p-6 shadow-sm">
+            <h3 class="text-base font-semibold text-slate-900 mb-4">Recent Results</h3>
+            <div class="space-y-3">
+              <template x-if="recentResults.length === 0">
+                <div class="text-center py-8 text-slate-500 text-sm">No recent results found.</div>
+              </template>
+              <template x-for="res in recentResults">
+                <div class="flex items-center justify-between p-3 bg-white/50 rounded-lg border border-slate-300/50">
+                  <div>
+                    <p class="text-sm font-medium text-slate-900" x-text="'Assessment #' + res.assessment_id"></p>
+                    <p class="text-xs text-slate-500" x-text="new Date(res.submitted_at).toLocaleDateString()"></p>
+                  </div>
+                  <span class="px-2.5 py-1 text-xs font-semibold rounded-md"
+                        :class="res.status === 'pass' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'"
+                        x-text="res.percentage + '%'">
+                  </span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assessments Section -->
+      <div x-show="currentSection === 'assessments'" x-transition.opacity.duration.300ms style="display: none;">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <template x-if="isLoading">
+            <div class="col-span-full py-12 text-center text-brand-500"><i class="bi bi-arrow-repeat animate-spin text-3xl"></i></div>
+          </template>
+          <template x-for="ass in assessments" :key="ass.id">
+            <div class="bg-slate-50 border border-slate-300 rounded-xl p-6 hover:shadow-lg hover:shadow-brand-500/5 transition-all hover:-translate-y-1 flex flex-col">
+              <div class="flex justify-between items-start mb-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-inner">
+                  <i class="bi bi-journal-code text-slate-900 text-xl"></i>
+                </div>
+                <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider"
+                      :class="{'bg-emerald-100 text-emerald-700': ass.difficulty==='easy', 'bg-amber-100 text-amber-700': ass.difficulty==='medium', 'bg-red-100 text-red-700': ass.difficulty==='hard'}"
+                      x-text="ass.difficulty"></span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 mb-2" x-text="ass.title"></h3>
+              <p class="text-sm text-slate-600 mb-6 flex-1 line-clamp-2" x-text="ass.description || 'No description available.'"></p>
+              
+              <div class="grid grid-cols-3 gap-2 text-xs text-slate-600 mb-6 border-y border-slate-300 py-3">
+                <div class="text-center"><i class="bi bi-clock block mb-1 text-slate-500 text-sm"></i><span x-text="ass.duration + 'm'"></span></div>
+                <div class="text-center border-l border-r border-slate-300"><i class="bi bi-star block mb-1 text-slate-500 text-sm"></i><span x-text="ass.total_marks + ' pts'"></span></div>
+                <div class="text-center"><i class="bi bi-check-circle block mb-1 text-slate-500 text-sm"></i><span x-text="ass.passing_marks + ' pass'"></span></div>
+              </div>
+              
+              <a :href="'/exam/' + ass.id" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-lg transition-colors text-center shadow-md shadow-brand-500/20">
+                Start Assessment <i class="bi bi-arrow-right ml-1"></i>
+              </a>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div x-show="currentSection === 'results'" x-transition.opacity.duration.300ms style="display: none;">
+        <div class="bg-slate-50 border border-slate-300 rounded-xl overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-white/50 border-b border-slate-300 text-xs uppercase tracking-wider text-slate-600 font-semibold">
+                  <th class="px-6 py-4">Assessment</th>
+                  <th class="px-6 py-4 text-center">Score</th>
+                  <th class="px-6 py-4 text-center">Percentage</th>
+                  <th class="px-6 py-4 text-center">Status</th>
+                  <th class="px-6 py-4">Date</th>
+                  <th class="px-6 py-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-700/50">
+                <template x-if="results.length === 0">
+                  <tr><td colspan="6" class="px-6 py-8 text-center text-slate-500">No exam results found.</td></tr>
+                </template>
+                <template x-for="r in results" :key="r.id">
+                  <tr class="hover:bg-slate-700/20 transition-colors">
+                    <td class="px-6 py-4 font-medium text-slate-900" x-text="r.assessment_title || 'Assessment #'+r.assessment_id"></td>
+                    <td class="px-6 py-4 text-center text-slate-800" x-text="r.score"></td>
+                    <td class="px-6 py-4 text-center">
+                      <div class="flex items-center justify-center space-x-2">
+                        <div class="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                          <div class="h-full bg-gradient-to-r from-brand-500 to-purple-500" :style="'width: ' + r.percentage + '%'"></div>
+                        </div>
+                        <span class="text-xs font-medium text-slate-800" x-text="r.percentage + '%'"></span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                      <span class="px-2.5 py-1 text-xs font-semibold rounded-md uppercase"
+                            :class="r.status === 'pass' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'"
+                            x-text="r.status"></span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600" x-text="new Date(r.submitted_at).toLocaleDateString()"></td>
+                    <td class="px-6 py-4 text-right">
+                      <a :href="'/result/' + r.id" class="text-brand-600 hover:text-brand-300 font-medium text-sm px-3 py-1.5 bg-brand-100 rounded-md transition-colors">View Details</a>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function dashboardApp() {
+  return {
+    sidebarOpen: false,
+    currentSection: 'overview',
+    user: getUser(),
+    isLoading: false,
+    
+    // Data stores
+    overviewStats: [],
+    recentResults: [],
+    assessments: [],
+    results: [],
+    
+    // Navigation config
+    navItems: [
+      { id: 'overview', name: 'Overview', icon: 'bi-grid-fill' },
+      { id: 'assessments', name: 'Assessments', icon: 'bi-journal-text' },
+      { id: 'results', name: 'My Results', icon: 'bi-trophy-fill' }
+    ],
+
+    async initApp() {
+      if(!this.user) window.location = '/login';
+      await this.loadOverview();
+      
+      // Watch for tab changes to lazy load data
+      this.$watch('currentSection', async (val) => {
+        if(val === 'assessments' && this.assessments.length === 0) await this.loadAssessments();
+        if(val === 'results' && this.results.length === 0) await this.loadResults();
+      });
+    },
+
+    async loadOverview() {
+      const res = await apiFetch('/api/dashboard/candidate');
+      if(res && res.ok) {
+        const d = await res.json();
+        this.recentResults = d.recent_results || [];
+        
+        this.overviewStats = [
+          { label: 'Available', value: d.available, subtext: 'Exams ready', color: '#8b5cf6', icon: 'bi-journals' },
+          { label: 'Completed', value: d.completed, subtext: 'Exams taken', color: '#10b981', icon: 'bi-check2-circle' },
+          { label: 'Avg Score', value: d.avg_score + '%', subtext: 'Overall perf.', color: '#f59e0b', icon: 'bi-graph-up' },
+          { label: 'Best Score', value: d.best_score + '%', subtext: 'Personal best', color: '#ef4444', icon: 'bi-star-fill' }
+        ];
+
+        this.renderChart(d.recent_results);
+      }
+    },
+
+    async loadAssessments() {
+      this.isLoading = true;
+      const res = await apiFetch('/api/assessments/');
+      if(res && res.ok) this.assessments = await res.json();
+      this.isLoading = false;
+    },
+
+    async loadResults() {
+      this.isLoading = true;
+      const res = await apiFetch('/api/results/my');
+      if(res && res.ok) this.results = await res.json();
+      this.isLoading = false;
+    },
+
+    renderChart(results) {
+      if(!results || results.length === 0) return;
+      // Reverse to show chronological order left-to-right
+      const chronResults = [...results].reverse();
+      
+      const options = {
+        series: [{ name: 'Score', data: chronResults.map(r => r.percentage) }],
+        chart: { type: 'area', height: 250, toolbar: { show: false }, background: 'transparent', fontFamily: 'Inter, sans-serif' },
+        colors: ['#6366f1'],
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 3 },
+        xaxis: { 
+          categories: chronResults.map((_,i) => `Exam ${i+1}`),
+          axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#94a3b8' } }
+        },
+        yaxis: { max: 100, min: 0, labels: { style: { colors: '#94a3b8' } } },
+        grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+        theme: { mode: 'light' }
+      };
+
+      const chartContainer = document.querySelector("#chart-container");
+      chartContainer.innerHTML = '';
+      const chart = new ApexCharts(chartContainer, options);
+      chart.render();
+    }
+  }
+}
+</script>
+{% endblock %}

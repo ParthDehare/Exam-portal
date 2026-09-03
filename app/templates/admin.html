@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel{% endblock %}
+
+{% block body %}
+<div x-data="adminApp()" x-init="initApp()" class="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 z-20"
+         :class="sidebarOpen ? 'translate-x-0 absolute inset-y-0 left-0 md:relative' : '-translate-x-full absolute inset-y-0 left-0 md:relative md:translate-x-0'">
+    <div class="h-16 flex items-center px-6 border-b border-slate-200">
+      <i class="bi bi-mortarboard-fill text-brand-500 text-xl mr-3"></i>
+      <span class="text-slate-900 font-bold text-base tracking-tight whitespace-nowrap">MockExam <span class="text-brand-600">Pro</span></span>
+      <span class="ml-2 bg-purple-500/20 text-purple-600 text-[9px] font-bold px-1.5 py-0.5 ml-1 whitespace-nowrap rounded uppercase tracking-wider">Admin</span>
+      
+      <!-- Close button on mobile -->
+      <button @click="sidebarOpen = false" class="ml-auto md:hidden text-slate-600 hover:text-slate-900">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <template x-for="item in navItems" :key="item.id">
+        <button @click="currentTab = item.id; sidebarOpen = false"
+                class="w-full flex items-center px-3 py-2.5 rounded-lg transition-colors font-medium text-sm"
+                :class="currentTab === item.id ? 'bg-brand-100 text-brand-600' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-600'">
+          <i :class="item.icon" class="text-lg mr-3 w-5 text-center"></i>
+          <span x-text="item.label"></span>
+        </button>
+      </template>
+    </nav>
+    
+    <div class="p-4 border-t border-slate-200">
+      <div class="flex items-center mb-4 px-2">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm mr-3">
+          <span x-text="user?.fullname?.charAt(0) || 'A'"></span>
+        </div>
+        <div class="overflow-hidden">
+          <div class="text-sm font-bold text-slate-900 truncate" x-text="user?.fullname || 'Admin'"></div>
+          <div class="text-xs text-slate-500 truncate" x-text="user?.email || ''"></div>
+        </div>
+      </div>
+      <button @click="logout()" class="w-full flex items-center px-3 py-2 rounded-lg text-slate-600 hover:bg-red-100 hover:text-red-600 transition-colors text-sm font-medium">
+        <i class="bi bi-box-arrow-right text-lg mr-3 w-5 text-center"></i>
+        <span>Logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Overlay -->
+  <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-slate-900/50 z-10 md:hidden" style="display:none;" x-transition></div>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+    
+    <!-- Topbar -->
+    <header class="h-16 bg-white/50 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10">
+      <div class="flex items-center">
+        <button @click="sidebarOpen = true" class="mr-4 text-slate-600 hover:text-slate-900 md:hidden">
+          <i class="bi bi-list text-2xl"></i>
+        </button>
+        <h1 class="text-xl font-bold text-slate-900 capitalize" x-text="currentTab"></h1>
+      </div>
+    </header>
+
+    <!-- Scrollable Area -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+      
+      <!-- DASHBOARD TAB -->
+      <div x-show="currentTab === 'dashboard'" style="display:none;">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <div class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Total Users</div>
+            <div class="text-3xl font-black text-brand-600" x-text="dashStats.total_users"></div>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <div class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Assessments</div>
+            <div class="text-3xl font-black text-emerald-600" x-text="dashStats.total_assessments"></div>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <div class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Submissions</div>
+            <div class="text-3xl font-black text-amber-600" x-text="dashStats.total_results"></div>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <div class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Avg Score</div>
+            <div class="text-3xl font-black text-purple-600" x-text="dashStats.avg_score + '%'"></div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-200">
+            <h3 class="font-bold text-slate-900">Recent Submissions</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+              <thead class="bg-slate-50/50 text-slate-600 uppercase tracking-wider text-xs font-semibold">
+                <tr>
+                  <th class="px-6 py-3">Candidate</th>
+                  <th class="px-6 py-3">Assessment</th>
+                  <th class="px-6 py-3">Score</th>
+                  <th class="px-6 py-3">Status</th>
+                  <th class="px-6 py-3 text-right">Date</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <template x-for="r in dashStats.recent_results" :key="r.id">
+                  <tr class="hover:bg-slate-50/30 transition-colors">
+                    <td class="px-6 py-4 font-medium text-slate-900" x-text="r.fullname"></td>
+                    <td class="px-6 py-4 text-slate-600" x-text="r.assessment"></td>
+                    <td class="px-6 py-4 font-bold" x-text="r.score"></td>
+                    <td class="px-6 py-4">
+                      <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                            :class="r.status === 'pass' ? 'bg-emerald-100 text-emerald-600 border border-emerald-500/20' : 'bg-red-100 text-red-600 border border-red-500/20'"
+                            x-text="r.status"></span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500 text-right" x-text="new Date(r.submitted_at).toLocaleDateString()"></td>
+                  </tr>
+                </template>
+                <tr x-show="dashStats.recent_results?.length === 0">
+                  <td colspan="5" class="px-6 py-8 text-center text-slate-500">No submissions found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS TAB -->
+      <div x-show="currentTab === 'users'" style="display:none;">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+              <thead class="bg-slate-50/50 text-slate-600 uppercase tracking-wider text-xs font-semibold">
+                <tr>
+                  <th class="px-6 py-3">ID</th>
+                  <th class="px-6 py-3">Name</th>
+                  <th class="px-6 py-3">Email</th>
+                  <th class="px-6 py-3">Role</th>
+                  <th class="px-6 py-3">Joined</th>
+                  <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <template x-for="u in usersList" :key="u.id">
+                  <tr class="hover:bg-slate-50/30 transition-colors">
+                    <td class="px-6 py-4 text-slate-500" x-text="u.id"></td>
+                    <td class="px-6 py-4 font-medium text-slate-900" x-text="u.fullname"></td>
+                    <td class="px-6 py-4 text-slate-600" x-text="u.email"></td>
+                    <td class="px-6 py-4">
+                      <span class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                            :class="u.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-brand-100 text-brand-600'"
+                            x-text="u.role"></span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500" x-text="new Date(u.created_at).toLocaleDateString()"></td>
+                    <td class="px-6 py-4 text-right">
+                      <button @click="deleteUser(u.id, u.fullname)" class="text-slate-600 hover:text-red-600 transition-colors p-1" title="Delete User">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASSESSMENTS TAB -->
+      <div x-show="currentTab === 'assessments'" style="display:none;">
+        
+        <div class="flex justify-end mb-4">
+          <button @click="openModal()" class="bg-brand-600 hover:bg-brand-500 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors flex items-center text-sm">
+            <i class="bi bi-plus-lg mr-2"></i>New Assessment
+          </button>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+              <thead class="bg-slate-50/50 text-slate-600 uppercase tracking-wider text-xs font-semibold">
+                <tr>
+                  <th class="px-6 py-3">Title</th>
+                  <th class="px-6 py-3">Category</th>
+                  <th class="px-6 py-3">Duration</th>
+                  <th class="px-6 py-3">Marks</th>
+                  <th class="px-6 py-3">Difficulty</th>
+                  <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <template x-for="a in assessmentsList" :key="a.id">
+                  <tr class="hover:bg-slate-50/30 transition-colors">
+                    <td class="px-6 py-4 font-medium text-slate-900" x-text="a.title"></td>
+                    <td class="px-6 py-4 text-slate-600" x-text="a.category || '-'"></td>
+                    <td class="px-6 py-4 text-slate-800" x-text="a.duration + ' mins'"></td>
+                    <td class="px-6 py-4 text-slate-800" x-text="a.total_marks"></td>
+                    <td class="px-6 py-4">
+                      <span class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                            :class="{
+                              'bg-emerald-100 text-emerald-600': a.difficulty === 'easy',
+                              'bg-amber-100 text-amber-600': a.difficulty === 'medium',
+                              'bg-red-100 text-red-600': a.difficulty === 'hard'
+                            }" x-text="a.difficulty"></span>
+                    </td>
+                    <td class="px-6 py-4 text-right space-x-3">
+                      <a :href="'/exam/' + a.id" class="text-slate-600 hover:text-emerald-600 transition-colors p-1" title="Preview" target="_blank">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                      <button @click="openModal(a)" class="text-slate-600 hover:text-brand-600 transition-colors p-1" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button @click="deleteAssessment(a.id, a.title)" class="text-slate-600 hover:text-red-600 transition-colors p-1" title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS TAB -->
+      <div x-show="currentTab === 'analytics'" style="display:none;">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <h3 class="font-bold text-slate-900 mb-4">Assessment Performance</h3>
+            <div id="chart-bar" class="w-full h-72"></div>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <h3 class="font-bold text-slate-900 mb-4">Pass / Fail Ratio</h3>
+            <div id="chart-pie" class="w-full h-72 flex justify-center items-center"></div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-200">
+            <h3 class="font-bold text-slate-900">Detailed Stats</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+              <thead class="bg-slate-50/50 text-slate-600 uppercase tracking-wider text-xs font-semibold">
+                <tr>
+                  <th class="px-6 py-3">Assessment</th>
+                  <th class="px-6 py-3 text-center">Participants</th>
+                  <th class="px-6 py-3 text-center">Avg Score</th>
+                  <th class="px-6 py-3 text-center">Highest</th>
+                  <th class="px-6 py-3 text-center">Lowest</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <template x-for="a in analyticsData" :key="a.title">
+                  <tr class="hover:bg-slate-50/30 transition-colors">
+                    <td class="px-6 py-4 font-medium text-slate-900" x-text="a.title"></td>
+                    <td class="px-6 py-4 text-center font-medium" x-text="a.participants"></td>
+                    <td class="px-6 py-4 text-center text-brand-600 font-bold" x-text="a.avg + '%'"></td>
+                    <td class="px-6 py-4 text-center text-emerald-600 font-bold" x-text="a.highest + '%'"></td>
+                    <td class="px-6 py-4 text-center text-red-600 font-bold" x-text="a.lowest + '%'"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Create/Edit Modal -->
+  <div x-show="showModal" style="display:none;" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50/80 backdrop-blur-sm">
+    <div @click.outside="showModal = false" class="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden" x-transition>
+      
+      <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+        <h3 class="font-bold text-slate-900 text-lg" x-text="editingId ? 'Edit Assessment' : 'New Assessment'"></h3>
+        <button @click="showModal = false" class="text-slate-600 hover:text-slate-900"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1">
+        <form @submit.prevent="saveAssessment">
+          <div class="space-y-5">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Title</label>
+              <input type="text" x-model="form.title" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="e.g. Python Basics">
+            </div>
+            
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Description</label>
+              <textarea x-model="form.description" rows="2" class="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="Optional details..."></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-5">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Category</label>
+                <input type="text" x-model="form.category" class="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="e.g. Programming">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Difficulty</label>
+                <select x-model="form.difficulty" class="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors">
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-5 border-t border-slate-200 pt-5 mt-2">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Duration (mins)</label>
+                <input type="number" min="1" x-model.number="form.duration" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Total Marks</label>
+                <input type="number" min="1" x-model.number="form.total_marks" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Pass Marks</label>
+                <input type="number" min="1" x-model.number="form.passing_marks" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="px-6 py-4 border-t border-slate-200 flex justify-end space-x-3 bg-white/50">
+        <button @click="showModal = false" class="px-4 py-2 rounded-lg font-medium text-slate-800 hover:bg-slate-50 transition-colors text-sm">Cancel</button>
+        <button @click="saveAssessment()" :disabled="isSaving" class="bg-brand-600 hover:bg-brand-500 text-white font-medium px-6 py-2 rounded-lg shadow-md transition-colors text-sm flex items-center disabled:opacity-50">
+          <i x-show="isSaving" class="bi bi-arrow-repeat animate-spin mr-2"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function adminApp() {
+  return {
+    user: null,
+    sidebarOpen: false,
+    currentTab: 'dashboard',
+    
+    dashStats: { total_users: 0, total_assessments: 0, total_results: 0, avg_score: 0, recent_results: [] },
+    usersList: [],
+    assessmentsList: [],
+    analyticsData: [],
+    
+    // Modal State
+    showModal: false,
+    isSaving: false,
+    editingId: null,
+    form: { title: '', description: '', duration: 30, total_marks: 10, passing_marks: 6, difficulty: 'medium', category: '' },
+
+    navItems: [
+      { id: 'dashboard', label: 'Dashboard', icon: 'bi-grid-fill' },
+      { id: 'users', label: 'Users', icon: 'bi-people-fill' },
+      { id: 'assessments', label: 'Assessments', icon: 'bi-journal-text' },
+      { id: 'analytics', label: 'Analytics', icon: 'bi-bar-chart-fill' }
+    ],
+
+    initApp() {
+      this.user = getUser();
+      if (!this.user || this.user.role !== 'admin') { window.location = '/login'; return; }
+      
+      this.loadDashboard();
+      
+      // Watch tab changes to load data lazy
+      this.$watch('currentTab', (val) => {
+        if (val === 'dashboard') this.loadDashboard();
+        if (val === 'users' && this.usersList.length === 0) this.loadUsers();
+        if (val === 'assessments' && this.assessmentsList.length === 0) this.loadAssessments();
+        if (val === 'analytics') this.loadAnalytics();
+      });
+    },
+
+    async loadDashboard() {
+      const res = await apiFetch('/api/dashboard/admin');
+      if (res && res.ok) this.dashStats = await res.json();
+    },
+
+    async loadUsers() {
+      const res = await apiFetch('/api/admin/users');
+      if (res && res.ok) this.usersList = await res.json();
+    },
+
+    async loadAssessments() {
+      const res = await apiFetch('/api/assessments/');
+      if (res && res.ok) this.assessmentsList = await res.json();
+    },
+
+    async loadAnalytics() {
+      const res = await apiFetch('/api/dashboard/analytics');
+      if (res && res.ok) {
+        this.analyticsData = await res.json();
+        this.$nextTick(() => this.renderCharts());
+      }
+    },
+
+    async deleteUser(id, name) {
+      if (!confirm(`Delete user "${name}"?`)) return;
+      const res = await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      if (res && res.ok) this.loadUsers();
+    },
+
+    async deleteAssessment(id, title) {
+      if (!confirm(`Delete assessment "${title}"?`)) return;
+      const res = await apiFetch(`/api/assessments/${id}`, { method: 'DELETE' });
+      if (res && res.ok) this.loadAssessments();
+    },
+
+    openModal(assessment = null) {
+      if (assessment) {
+        this.editingId = assessment.id;
+        this.form = { ...assessment };
+      } else {
+        this.editingId = null;
+        this.form = { title: '', description: '', duration: 30, total_marks: 10, passing_marks: 6, difficulty: 'medium', category: '' };
+      }
+      this.showModal = true;
+    },
+
+    async saveAssessment() {
+      this.isSaving = true;
+      const url = this.editingId ? `/api/assessments/${this.editingId}` : '/api/assessments/';
+      const method = this.editingId ? 'PUT' : 'POST';
+      
+      const res = await apiFetch(url, { method, body: JSON.stringify(this.form) });
+      if (res && res.ok) {
+        this.showModal = false;
+        this.loadAssessments();
+      } else {
+        alert("Failed to save assessment");
+      }
+      this.isSaving = false;
+    },
+
+    renderCharts() {
+      // Clean up existing charts if re-rendering
+      document.querySelector("#chart-bar").innerHTML = '';
+      document.querySelector("#chart-pie").innerHTML = '';
+
+      if (!this.analyticsData.length) return;
+
+      const labels = this.analyticsData.map(a => a.title.length > 20 ? a.title.substring(0,20)+'...' : a.title);
+      const avgData = this.analyticsData.map(a => a.avg);
+      const highData = this.analyticsData.map(a => a.highest);
+      
+      // Bar Chart
+      new ApexCharts(document.querySelector("#chart-bar"), {
+        series: [
+          { name: 'Average %', data: avgData },
+          { name: 'Highest %', data: highData }
+        ],
+        chart: { type: 'bar', height: 280, toolbar: { show: false }, background: 'transparent', fontFamily: 'Inter, sans-serif' },
+        plotOptions: { bar: { borderRadius: 4, horizontal: false, columnWidth: '55%' } },
+        dataLabels: { enabled: false },
+        stroke: { show: true, width: 2, colors: ['transparent'] },
+        xaxis: { categories: labels, labels: { style: { colors: '#94a3b8' } } },
+        yaxis: { max: 100, labels: { style: { colors: '#94a3b8' } } },
+        colors: ['#6366f1', '#10b981'],
+        theme: { mode: 'light' },
+        grid: { borderColor: '#e2e8f0' },
+        legend: { labels: { colors: '#94a3b8' } }
+      }).render();
+
+      // Pie Chart
+      const totalPass = this.analyticsData.reduce((s, a) => s + Math.round(a.participants * a.avg / 100), 0);
+      const totalFail = this.analyticsData.reduce((s, a) => s + a.participants, 0) - totalPass;
+      
+      new ApexCharts(document.querySelector("#chart-pie"), {
+        series: [totalPass, totalFail],
+        labels: ['Passed', 'Failed'],
+        chart: { type: 'donut', height: 250, background: 'transparent', fontFamily: 'Inter, sans-serif' },
+        colors: ['#10b981', '#ef4444'],
+        plotOptions: { pie: { donut: { size: '65%' } } },
+        dataLabels: { enabled: false },
+        stroke: { show: false },
+        theme: { mode: 'light' },
+        legend: { position: 'bottom', labels: { colors: '#94a3b8' } }
+      }).render();
+    }
+  }
+}
+</script>
+{% endblock %}

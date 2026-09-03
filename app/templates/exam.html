@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% block title %}Exam{% endblock %}
+{% block extra_css %}
+<style type="text/tailwindcss">
+body { @apply bg-white overflow-hidden; }
+.q-btn { @apply w-10 h-10 rounded-lg border-2 border-slate-300 bg-slate-50 text-slate-800 text-sm font-bold flex items-center justify-center cursor-pointer transition-all; }
+.q-btn.answered { @apply bg-emerald-500/20 border-emerald-500 text-emerald-600; }
+.q-btn.marked { @apply bg-amber-500/20 border-amber-500 text-amber-600; }
+.q-btn.current { @apply border-brand-500 shadow-[0_0_0_3px_rgba(99,102,241,0.3)]; }
+.option-label { @apply flex items-center gap-4 p-4 border-2 border-slate-300 rounded-xl cursor-pointer transition-all mb-3 hover:border-brand-500 hover:bg-brand-500/5; }
+.option-label.selected { @apply border-brand-500 bg-brand-100; }
+.option-circle { @apply w-8 h-8 rounded-full border-2 border-slate-600 flex items-center justify-center font-bold text-sm flex-shrink-0 transition-all; }
+.option-label.selected .option-circle { @apply bg-brand-500 border-brand-500 text-white; }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Alpine Wrapper -->
+<div x-data="examApp()" x-init="initApp()" class="h-screen flex flex-col">
+
+  <!-- Instructions Modal Overlay -->
+  <div x-show="showModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-50/80 backdrop-blur-sm p-4" style="display: none;">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden transform transition-all">
+      <div class="p-6 border-b border-slate-200 flex items-center">
+        <i class="bi bi-info-circle-fill text-brand-500 text-xl mr-3"></i>
+        <h2 class="text-xl font-bold text-slate-900">Exam Instructions</h2>
+      </div>
+      
+      <div class="p-6 overflow-y-auto flex-1">
+        <template x-if="assessment">
+          <div class="grid grid-cols-4 gap-4 mb-8 bg-slate-50/50 p-4 rounded-xl border border-slate-300/50">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-brand-600" x-text="assessment.duration"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Minutes</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-emerald-600" x-text="questions.length"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Questions</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-amber-600" x-text="assessment.total_marks"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Total Marks</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-red-600" x-text="assessment.passing_marks"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Pass Marks</div>
+            </div>
+          </div>
+        </template>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="bg-emerald-100 border border-emerald-500/20 p-5 rounded-xl">
+            <div class="flex items-center text-emerald-600 font-bold mb-3"><i class="bi bi-check-circle-fill mr-2"></i>Do's</div>
+            <ul class="space-y-2 text-sm text-slate-800">
+              <li>• Read each question carefully</li>
+              <li>• Manage your time wisely</li>
+              <li>• Review marked questions before submit</li>
+            </ul>
+          </div>
+          <div class="bg-red-100 border border-red-500/20 p-5 rounded-xl">
+            <div class="flex items-center text-red-600 font-bold mb-3"><i class="bi bi-x-circle-fill mr-2"></i>Don'ts</div>
+            <ul class="space-y-2 text-sm text-slate-800">
+              <li>• Don't switch tabs or windows</li>
+              <li>• Don't minimize the browser</li>
+              <li>• Don't open other applications</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="bg-amber-100 border border-amber-500/20 p-4 rounded-xl flex items-start">
+          <i class="bi bi-exclamation-triangle-fill text-amber-500 text-lg mr-3 mt-0.5"></i>
+          <p class="text-sm text-slate-800"><strong class="text-amber-500">Warning:</strong> Tab switching and window minimizing will be recorded as violations. Excessive violations may result in immediate exam termination.</p>
+        </div>
+      </div>
+      
+      <div class="p-6 border-t border-slate-200 flex justify-end">
+        <button @click="startExam()" class="bg-brand-600 hover:bg-brand-500 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition-colors flex items-center">
+          <i class="bi bi-play-fill mr-2"></i>Start Exam
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Exam UI -->
+  <div x-show="examStarted" style="display: none;" class="flex-1 flex overflow-hidden">
+    
+    <!-- Left Column (Questions) -->
+    <div class="flex-1 flex flex-col border-r border-slate-200 bg-white min-w-0">
+      
+      <!-- Topbar -->
+      <header class="h-16 bg-slate-50/50 border-b border-slate-300/50 flex items-center justify-between px-6 flex-shrink-0">
+        <div class="flex items-center space-x-4">
+          <h1 class="text-lg font-bold text-slate-900 truncate max-w-md" x-text="assessment?.title">Loading...</h1>
+          <div x-show="violationMsg" x-transition class="bg-red-500/20 border border-red-500/30 text-red-600 px-3 py-1 rounded-md text-sm font-medium flex items-center" style="display:none;">
+            <i class="bi bi-exclamation-triangle-fill mr-2"></i><span x-text="violationMsg"></span>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-6">
+          <div class="text-slate-600 text-sm font-medium">Q <span class="text-slate-900" x-text="currentIdx + 1"></span> of <span class="text-slate-900" x-text="questions.length"></span></div>
+          <div class="bg-white border border-slate-300 px-4 py-1.5 rounded-lg font-mono text-lg font-bold tracking-wider"
+               :class="timeLeft < 300 ? 'text-red-500 border-red-500/50 animate-pulse' : (timeLeft < 600 ? 'text-amber-500 border-amber-500/50' : 'text-slate-900')">
+            <span x-text="formatTime()"></span>
+          </div>
+          <button @click="confirmSubmit()" class="bg-red-100 hover:bg-red-500/20 border border-red-500/30 text-red-600 font-medium py-1.5 px-4 rounded-lg transition-colors flex items-center text-sm">
+            <i class="bi bi-send-fill mr-2"></i>Submit
+          </button>
+        </div>
+      </header>
+
+      <!-- Question Body -->
+      <main class="flex-1 overflow-y-auto p-6 lg:p-10 relative">
+        <div class="max-w-4xl mx-auto">
+          <!-- Progress -->
+          <div class="w-full bg-slate-50 rounded-full h-1.5 mb-8">
+            <div class="bg-gradient-to-r from-brand-500 to-purple-500 h-1.5 rounded-full transition-all duration-300" :style="`width: ${((currentIdx+1)/questions.length)*100}%`"></div>
+          </div>
+          
+          <template x-if="currentQ">
+            <div class="bg-slate-50/40 border border-slate-300 rounded-2xl p-8 shadow-xl">
+              <!-- Tags -->
+              <div class="flex flex-wrap items-center gap-3 mb-6">
+                <span class="bg-gradient-to-r from-brand-600 to-brand-500 text-slate-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Q<span x-text="currentIdx+1"></span></span>
+                <span class="bg-brand-100 text-brand-600 px-3 py-1 rounded-full text-xs font-semibold" x-text="currentQ.topic || 'General'"></span>
+                <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-semibold" x-text="currentQ.marks + (currentQ.marks > 1 ? ' marks' : ' mark')"></span>
+                <span x-show="marked.has(currentQ.id)" class="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center">
+                  <i class="bi bi-bookmark-fill mr-1"></i>Marked
+                </span>
+              </div>
+              
+              <!-- Question Text -->
+              <p class="text-xl text-slate-900 font-medium leading-relaxed mb-8" x-text="currentQ.question_text"></p>
+              
+              <!-- Options -->
+              <div class="space-y-3">
+                <template x-if="currentQ.question_type === 'true_false'">
+                  <div>
+                    <template x-for="opt in ['True', 'False']">
+                      <label class="option-label" :class="answers[currentQ.id] === opt ? 'selected' : ''">
+                        <input type="radio" class="hidden" :name="'q'+currentQ.id" :value="opt" @change="saveAnswer(opt)">
+                        <div class="option-circle" x-text="opt.charAt(0)"></div>
+                        <span class="text-slate-900 font-medium text-lg" x-text="opt"></span>
+                      </label>
+                    </template>
+                  </div>
+                </template>
+                
+                <template x-if="currentQ.question_type === 'mcq'">
+                  <div>
+                    <template x-for="opt in getOptions(currentQ)">
+                      <label class="option-label" :class="answers[currentQ.id] === opt.key ? 'selected' : ''">
+                        <input type="radio" class="hidden" :name="'q'+currentQ.id" :value="opt.key" @change="saveAnswer(opt.key)">
+                        <div class="option-circle" x-text="opt.key"></div>
+                        <span class="text-slate-900 font-medium text-lg" x-text="opt.val"></span>
+                      </label>
+                    </template>
+                  </div>
+                </template>
+                
+                <template x-if="currentQ.question_type === 'descriptive'">
+                  <textarea class="w-full bg-white border border-slate-300 text-slate-900 p-4 rounded-xl focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 min-h-[150px]" 
+                            placeholder="Type your answer here..."
+                            x-model="answers[currentQ.id]"
+                            @input="saveAnswer($event.target.value)"></textarea>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </main>
+
+      <!-- Footer / Controls -->
+      <footer class="h-20 bg-slate-50/50 border-t border-slate-300/50 flex items-center justify-between px-6 flex-shrink-0">
+        <button @click="navigate(-1)" :disabled="currentIdx === 0" class="bg-slate-700 hover:bg-slate-600 text-slate-900 font-medium py-2.5 px-5 rounded-lg disabled:opacity-50 transition-colors flex items-center">
+          <i class="bi bi-arrow-left mr-2"></i>Previous
+        </button>
+        
+        <div class="flex items-center space-x-4">
+          <button @click="toggleMark()" class="bg-amber-100 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 font-medium py-2 px-4 rounded-lg transition-colors flex items-center">
+            <i class="bi bi-bookmark-fill mr-2"></i>Mark for Review
+          </button>
+          <button @click="clearAnswer()" class="bg-slate-50 hover:bg-slate-700 border border-slate-300 text-slate-800 font-medium py-2 px-4 rounded-lg transition-colors flex items-center">
+            <i class="bi bi-x-circle mr-2"></i>Clear
+          </button>
+        </div>
+        
+        <button @click="navigate(1)" class="bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 px-6 rounded-lg transition-colors flex items-center">
+          <span x-text="currentIdx === questions.length - 1 ? 'Finish' : 'Next'"></span>
+          <i class="bi bi-arrow-right ml-2" x-show="currentIdx < questions.length - 1"></i>
+        </button>
+      </footer>
+    </div>
+    
+    <!-- Right Sidebar (Palette) -->
+    <aside class="w-80 bg-white flex flex-col flex-shrink-0 border-l border-slate-200 hidden md:flex">
+      <div class="p-6 border-b border-slate-200">
+        <h3 class="text-slate-900 font-bold text-lg mb-4">Question Palette</h3>
+        <div class="flex flex-wrap gap-4 text-xs">
+          <div class="flex items-center"><span class="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500 mr-1.5"></span><span class="text-slate-600">Answered</span></div>
+          <div class="flex items-center"><span class="w-3 h-3 rounded bg-amber-500/20 border border-amber-500 mr-1.5"></span><span class="text-slate-600">Marked</span></div>
+          <div class="flex items-center"><span class="w-3 h-3 rounded bg-slate-50 border border-slate-300 mr-1.5"></span><span class="text-slate-600">Not Visited</span></div>
+        </div>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-6">
+        <div class="flex flex-wrap gap-2">
+          <template x-for="(q, idx) in questions" :key="q.id">
+            <button @click="currentIdx = idx" class="q-btn" 
+                    :class="{ 'answered': answers[q.id], 'marked': marked.has(q.id), 'current': currentIdx === idx }">
+              <span x-text="idx + 1"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+      
+      <div class="p-6 border-t border-slate-200 bg-slate-50/30 space-y-4">
+        <div class="bg-white rounded-xl p-4 border border-slate-300/50">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-slate-600">Answered</span>
+            <span class="font-bold text-emerald-600" x-text="Object.keys(answers).length"></span>
+          </div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-slate-600">Marked</span>
+            <span class="font-bold text-amber-600" x-text="marked.size"></span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-slate-600">Unanswered</span>
+            <span class="font-bold text-slate-800" x-text="questions.length - Object.keys(answers).length"></span>
+          </div>
+        </div>
+        
+        <div class="bg-red-100 rounded-xl p-4 border border-red-500/20 flex justify-between items-center">
+          <span class="text-sm text-slate-600">Violations</span>
+          <span class="font-bold text-xl text-red-500" x-text="violations"></span>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function examApp() {
+  const assessmentId = {{ assessment_id }};
+  return {
+    showModal: true,
+    examStarted: false,
+    assessment: null,
+    questions: [],
+    currentIdx: 0,
+    answers: {},
+    marked: new Set(),
+    timeLeft: 0,
+    timerInterval: null,
+    violations: 0,
+    violationMsg: '',
+    startTime: 0,
+    ws: null,
+
+    get currentQ() {
+      return this.questions[this.currentIdx] || null;
+    },
+
+    async initApp() {
+      if(!getUser()){ window.location='/login'; return; }
+      
+      try {
+        const [aRes, qRes] = await Promise.all([
+          apiFetch(`/api/assessments/${assessmentId}`), 
+          apiFetch(`/api/assessments/${assessmentId}/questions`)
+        ]);
+        if(aRes && qRes) {
+          this.assessment = await aRes.json();
+          this.questions = await qRes.json();
+          this.timeLeft = this.assessment.duration * 60;
+        }
+      } catch(e) { console.error("Error loading exam data"); }
+    },
+
+    getOptions(q) {
+      if(q.question_type !== 'mcq') return [];
+      return [
+        {key: 'A', val: q.option_a},
+        {key: 'B', val: q.option_b},
+        {key: 'C', val: q.option_c},
+        {key: 'D', val: q.option_d}
+      ].filter(o => o.val);
+    },
+
+    startExam() {
+      this.showModal = false;
+      this.examStarted = true;
+      this.startTime = Date.now();
+      
+      this.timerInterval = setInterval(() => {
+        this.timeLeft--;
+        if(this.timeLeft <= 0) {
+          clearInterval(this.timerInterval);
+          this.submitExam();
+        }
+      }, 1000);
+
+      // Anti-cheat setup
+      document.addEventListener('visibilitychange', () => {
+        if(document.hidden) this.logViolation('tab_switch');
+      });
+      window.addEventListener('blur', () => this.logViolation('window_blur'));
+
+      // WebSockets for live monitoring
+      try {
+        this.ws = new WebSocket(`ws://${location.host}/ws/exam/${assessmentId}`);
+        setInterval(() => {
+          if(this.ws && this.ws.readyState === 1) {
+            this.ws.send(JSON.stringify({type: 'autosave', answers: Object.keys(this.answers).length}));
+          }
+        }, 10000);
+      } catch(e){}
+    },
+
+    formatTime() {
+      if(this.timeLeft < 0) return "00:00";
+      const m = Math.floor(this.timeLeft / 60).toString().padStart(2, '0');
+      const s = (this.timeLeft % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    },
+
+    saveAnswer(val) {
+      if(!val) delete this.answers[this.currentQ.id];
+      else this.answers[this.currentQ.id] = val;
+    },
+
+    clearAnswer() {
+      this.saveAnswer('');
+    },
+
+    toggleMark() {
+      const id = this.currentQ.id;
+      if(this.marked.has(id)) this.marked.delete(id);
+      else this.marked.add(id);
+    },
+
+    navigate(dir) {
+      const next = this.currentIdx + dir;
+      if(next >= 0 && next < this.questions.length) {
+        this.currentIdx = next;
+      } else if (next >= this.questions.length) {
+        this.confirmSubmit();
+      }
+    },
+
+    async logViolation(type) {
+      this.violations++;
+      this.violationMsg = `Violation #${this.violations}: ${type.replace('_', ' ')}`;
+      setTimeout(() => this.violationMsg = '', 3000);
+      
+      await apiFetch('/api/violations/', {
+        method: 'POST',
+        body: JSON.stringify({assessment_id: assessmentId, violation_type: type})
+      });
+      
+      if(this.ws && this.ws.readyState === 1) {
+        this.ws.send(JSON.stringify({type: 'violation', user: getUser()?.fullname, violation: type}));
+      }
+    },
+
+    confirmSubmit() {
+      const unanswered = this.questions.length - Object.keys(this.answers).length;
+      if(unanswered > 0 && !confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return;
+      this.submitExam();
+    },
+
+    async submitExam() {
+      clearInterval(this.timerInterval);
+      const timeTaken = Math.floor((Date.now() - this.startTime) / 1000);
+      const res = await apiFetch('/api/results/submit', {
+        method: 'POST',
+        body: JSON.stringify({assessment_id: assessmentId, answers: this.answers, time_taken: timeTaken})
+      });
+      
+      if(res && res.ok) {
+        const data = await res.json();
+        if(data.result_id) window.location = `/result/${data.result_id}`;
+      } else {
+        alert("Submission failed. Please check your network.");
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

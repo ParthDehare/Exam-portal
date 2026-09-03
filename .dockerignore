@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv
+mockexam.db
+*.db
+.pytest_cache/
+htmlcov/
+.coverage
+.git/
+.gitignore

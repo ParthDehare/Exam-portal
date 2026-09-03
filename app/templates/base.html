@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased text-slate-600 bg-white">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MockExam Pro – {% block title %}{% endblock %}</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'sans-serif'] },
+        colors: {
+          brand: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' }
+        }
+      }
+    }
+  }
+</script>
+
+<!-- HTMX & Alpine.js -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/client-side-templates.js"></script>
+<script src="https://unpkg.com/mustache@4.2.0"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<!-- Bootstrap Icons for quick icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+<style type="text/tailwindcss">
+  /* Base overrides */
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+  
+  /* Utilities for transition */
+  .fade-me-out.htmx-swapping { opacity: 0; transition: opacity 200ms ease-out; }
+  .fade-me-in.htmx-added { opacity: 0; }
+  .fade-me-in { opacity: 1; transition: opacity 200ms ease-in; }
+
+  /* Keep basic custom classes for compatibility with unmigrated pages temporarily */
+  .card-custom { @apply bg-slate-50 border border-slate-300 rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-brand-500/10; }
+  .btn-primary-custom { @apply bg-brand-600 hover:bg-brand-500 text-white font-semibold py-2 px-4 w-full rounded-lg transition-all shadow-md shadow-brand-500/20; }
+  .form-control-custom { @apply bg-white border border-slate-300 rounded-lg text-slate-900 px-4 py-2 w-full focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all; }
+  .badge-pass { @apply bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full text-xs font-semibold; }
+  .badge-fail { @apply bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-semibold; }
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body class="bg-white text-slate-800 selection:bg-brand-500/30">
+
+{% block body %}{% endblock %}
+
+<script>
+// Keep legacy helper functions until all pages are migrated
+function getUser(){try{return JSON.parse(localStorage.getItem('user'))}catch{return null}}
+function logout(){
+  fetch('/api/auth/logout', {method: 'POST'}).then(() => {
+    localStorage.clear();
+    window.location='/';
+  });
+}
+async function apiFetch(url,opts={}){
+  // HTMX handles cookies automatically, but for legacy JS we keep this
+  const res = await fetch(url, { headers: {'Content-Type': 'application/json'}, ...opts});
+  if(res.status===401){logout();return null}
+  return res;
+}
+function showToast(msg, type='success'){
+  const t = document.createElement('div');
+  const bgColor = type === 'success' ? 'bg-emerald-500' : 'bg-red-500';
+  t.className = `fixed top-4 right-4 z-50 ${bgColor} text-slate-900 px-6 py-3 rounded-lg shadow-lg font-medium transition-all transform duration-300`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

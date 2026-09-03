@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Exam Results{% endblock %}
+{% block extra_css %}
+<style type="text/tailwindcss">
+@media print {
+  .print-hide { display: none !important; }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body, .min-h-screen {
+    background: white !important;
+  }
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div x-data="resultApp()" x-init="initApp()" class="min-h-screen bg-slate-50 text-slate-800 py-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-5xl mx-auto">
+    
+    <!-- Header Actions -->
+    <div class="flex items-center justify-between mb-8 print-hide">
+      <a href="/dashboard" class="bg-slate-50 hover:bg-slate-700 border border-slate-300 text-slate-800 px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+        <i class="bi bi-arrow-left mr-2"></i>Back to Dashboard
+      </a>
+      <a :href="'/report/' + {{ result_id }}" class="bg-brand-100 hover:bg-brand-500/20 border border-brand-500/30 text-brand-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+        <i class="bi bi-file-earmark-pdf-fill mr-2"></i>Download PDF Report
+      </a>
+    </div>
+
+    <!-- Loading State -->
+    <template x-if="isLoading">
+      <div class="flex flex-col items-center justify-center py-20">
+        <i class="bi bi-arrow-repeat animate-spin text-4xl text-brand-500 mb-4"></i>
+        <p class="text-slate-600">Loading your results...</p>
+      </div>
+    </template>
+
+    <template x-if="result">
+      <div>
+        <!-- Main Score Card -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl mb-8 relative overflow-hidden text-center">
+          <div class="absolute top-0 right-0 -mr-10 -mt-10 w-64 h-64 rounded-full bg-brand-100 blur-[80px]"></div>
+          
+          <div class="inline-flex items-center justify-center w-40 h-40 rounded-full border-8 mb-6 relative z-10"
+               :class="isPassed ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-red-500/20 bg-red-500/5'">
+            <span class="text-4xl font-extrabold" :class="isPassed ? 'text-emerald-600' : 'text-red-600'" x-text="result.percentage + '%'"></span>
+          </div>
+          
+          <h2 class="text-3xl font-bold text-slate-900 mb-2 relative z-10" x-text="result.assessment.title"></h2>
+          
+          <div class="mb-8 relative z-10">
+            <span class="text-3xl font-black uppercase tracking-wider" 
+                  :class="isPassed ? 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400' : 'text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-rose-400'"
+                  x-text="isPassed ? '🎉 Passed' : '❌ Failed'">
+            </span>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto relative z-10">
+            <div class="bg-slate-50/50 border border-slate-300/50 rounded-xl p-4">
+              <div class="text-2xl font-bold text-brand-600" x-text="result.score"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Total Score</div>
+            </div>
+            <div class="bg-slate-50/50 border border-slate-300/50 rounded-xl p-4">
+              <div class="text-2xl font-bold text-emerald-600" x-text="correctCount"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Correct</div>
+            </div>
+            <div class="bg-slate-50/50 border border-slate-300/50 rounded-xl p-4">
+              <div class="text-2xl font-bold text-red-600" x-text="result.questions.length - correctCount"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Incorrect</div>
+            </div>
+            <div class="bg-slate-50/50 border border-slate-300/50 rounded-xl p-4">
+              <div class="text-2xl font-bold text-amber-600" x-text="formatTime(result.time_taken)"></div>
+              <div class="text-xs text-slate-600 uppercase tracking-wider mt-1">Time Taken</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <!-- Chart -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-900 mb-6">Performance Breakdown</h3>
+            <div id="chart-container" class="flex justify-center h-64"></div>
+          </div>
+          
+          <!-- Thresholds -->
+          <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl flex flex-col justify-center">
+            <h3 class="text-lg font-bold text-slate-900 mb-6">Pass/Fail Threshold</h3>
+            
+            <div class="mb-6">
+              <div class="flex justify-between text-sm mb-2">
+                <span class="text-slate-600 font-medium">Your Score</span>
+                <span class="text-slate-900 font-bold" x-text="result.score + ' / ' + result.assessment.total_marks"></span>
+              </div>
+              <div class="w-full bg-slate-50 rounded-full h-2.5">
+                <div class="bg-gradient-to-r from-brand-500 to-purple-500 h-2.5 rounded-full" :style="`width: ${result.percentage}%`"></div>
+              </div>
+            </div>
+            
+            <div class="mb-6">
+              <div class="flex justify-between text-sm mb-2">
+                <span class="text-slate-600 font-medium">Passing Score</span>
+                <span class="text-slate-900 font-bold" x-text="result.assessment.passing_marks + ' / ' + result.assessment.total_marks"></span>
+              </div>
+              <div class="w-full bg-slate-50 rounded-full h-2.5">
+                <div class="bg-amber-500 h-2.5 rounded-full" :style="`width: ${(result.assessment.passing_marks / result.assessment.total_marks) * 100}%`"></div>
+              </div>
+            </div>
+            
+            <div class="p-4 rounded-xl border flex items-start mt-2"
+                 :class="isPassed ? 'bg-emerald-100 border-emerald-500/30' : 'bg-red-100 border-red-500/30'">
+              <i class="bi text-xl mr-3" :class="isPassed ? 'bi-check-circle-fill text-emerald-600' : 'bi-x-circle-fill text-red-600'"></i>
+              <p class="font-medium text-sm mt-0.5" 
+                 :class="isPassed ? 'text-emerald-600' : 'text-red-600'"
+                 x-text="isPassed ? 'Congratulations! You have successfully passed the assessment.' : 'You did not meet the passing criteria for this assessment.'"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Review -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xl">
+          <h3 class="text-xl font-bold text-slate-900 mb-6 border-b border-slate-200 pb-4">Detailed Review</h3>
+          
+          <div class="space-y-4">
+            <template x-for="(q, idx) in result.questions" :key="idx">
+              <div class="border-l-4 rounded-r-xl p-5 bg-slate-50/50 page-break-inside-avoid"
+                   :class="q.is_correct ? 'border-l-emerald-500' : 'border-l-red-500'">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+                  <h4 class="text-slate-900 font-medium leading-relaxed flex-1">
+                    <span class="text-slate-500 mr-1" x-text="'Q' + (idx+1) + '.'"></span>
+                    <span x-text="q.question_text"></span>
+                  </h4>
+                  <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex-shrink-0"
+                        :class="q.is_correct ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'"
+                        x-text="q.is_correct ? 'Correct' : 'Incorrect'"></span>
+                </div>
+                
+                <div class="text-sm mt-3 space-y-2">
+                  <div class="flex items-start">
+                    <span class="text-slate-500 w-24 flex-shrink-0">Your Answer:</span>
+                    <span class="font-semibold" :class="q.is_correct ? 'text-emerald-600' : 'text-red-600'" x-text="q.user_answer || 'Not answered'"></span>
+                  </div>
+                  <template x-if="!q.is_correct">
+                    <div class="flex items-start">
+                      <span class="text-slate-500 w-24 flex-shrink-0">Correct:</span>
+                      <span class="font-semibold text-emerald-600" x-text="q.correct_answer"></span>
+                    </div>
+                  </template>
+                </div>
+                
+                <template x-if="q.explanation">
+                  <div class="mt-4 p-3 bg-brand-100 border border-brand-500/20 rounded-lg text-sm text-slate-800 flex items-start">
+                    <i class="bi bi-lightbulb-fill text-amber-600 mr-2 mt-0.5"></i>
+                    <span x-text="q.explanation"></span>
+                  </div>
+                </template>
+                
+              </div>
+            </template>
+          </div>
+        </div>
+
+      </div>
+    </template>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function resultApp() {
+  const resultId = {{ result_id }};
+  
+  return {
+    isLoading: true,
+    result: null,
+    isPassed: false,
+    correctCount: 0,
+    
+    async initApp() {
+      if(!getUser()) { window.location = '/login'; return; }
+      
+      const res = await apiFetch(`/api/results/${resultId}`);
+      if(res && res.ok) {
+        this.result = await res.json();
+        this.isPassed = this.result.status === 'pass';
+        this.correctCount = this.result.questions.filter(q => q.is_correct).length;
+        this.isLoading = false;
+        
+        // Wait for Alpine to render the DOM before mounting chart
+        this.$nextTick(() => {
+          this.renderChart();
+        });
+      }
+    },
+    
+    formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}m ${s}s`;
+    },
+    
+    renderChart() {
+      const incorrect = this.result.questions.length - this.correctCount;
+      const options = {
+        series: [this.correctCount, incorrect],
+        labels: ['Correct', 'Incorrect'],
+        chart: { type: 'donut', height: 280, background: 'transparent', fontFamily: 'Inter, sans-serif' },
+        colors: ['#10b981', '#ef4444'],
+        plotOptions: {
+          pie: { donut: { size: '75%', labels: { show: true, name: { color: '#94a3b8' }, value: { color: '#0f172a' }, total: { show: true, color: '#0f172a', label: 'Total', formatter: () => this.result.questions.length } } } }
+        },
+        dataLabels: { enabled: false },
+        stroke: { show: false },
+        legend: { position: 'bottom', labels: { colors: '#94a3b8' } },
+        theme: { mode: 'light' }
+      };
+
+      const chartContainer = document.querySelector("#chart-container");
+      if(chartContainer) {
+        chartContainer.innerHTML = '';
+        const chart = new ApexCharts(chartContainer, options);
+        chart.render();
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

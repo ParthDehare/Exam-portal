@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MockExam Pro — Assessment Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8fafc; color: #1e293b; font-size: 13px; line-height: 1.6;
+    }
+    .report-container {
+      max-width: 800px; margin: 0 auto; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 0;
+    }
+
+    /* ─── HEADER ─── */
+    .report-header {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff; padding: 32px 40px; position: relative; overflow: hidden;
+    }
+    .report-header::after {
+      content: ''; position: absolute; top: -50%; right: -20%;
+      width: 300px; height: 300px; border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; z-index: 1; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon {
+      width: 36px; height: 36px; background: rgba(255,255,255,0.2);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800;
+    }
+    .brand-name { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+    .report-badge {
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+      padding: 4px 14px; border-radius: 20px; font-size: 11px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .header-title { font-size: 26px; font-weight: 800; margin-bottom: 4px; position: relative; z-index: 1; }
+    .header-subtitle { font-size: 13px; opacity: 0.85; position: relative; z-index: 1; }
+
+    /* ─── CANDIDATE INFO ─── */
+    .candidate-bar {
+      background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+      padding: 16px 40px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .candidate-info { display: flex; gap: 32px; }
+    .info-item { display: flex; flex-direction: column; }
+    .info-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; font-weight: 600; }
+    .info-value { font-size: 14px; font-weight: 700; color: #1e293b; }
+
+    /* ─── SCORE SECTION ─── */
+    .score-section { padding: 32px 40px; border-bottom: 1px solid #e2e8f0; }
+    .score-grid { display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: center; }
+    .score-circle-wrap { display: flex; justify-content: center; }
+    .score-circle {
+      width: 160px; height: 160px; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .score-circle.passed {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border: 4px solid #10b981;
+    }
+    .score-circle.failed {
+      background: linear-gradient(135deg, #fef2f2, #fecaca);
+      border: 4px solid #ef4444;
+    }
+    .score-percent { font-size: 40px; font-weight: 800; line-height: 1; }
+    .score-percent.passed { color: #059669; }
+    .score-percent.failed { color: #dc2626; }
+    .score-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; font-weight: 600; }
+    .score-status {
+      display: inline-block; padding: 4px 16px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;
+    }
+    .score-status.passed { background: #d1fae5; color: #059669; }
+    .score-status.failed { background: #fecaca; color: #dc2626; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .stat-title { font-size: 12px; color: #64748b; font-weight: 500; }
+    .stat-value { font-size: 22px; font-weight: 800; }
+    .stat-value.blue { color: #4f46e5; }
+    .stat-value.green { color: #059669; }
+    .stat-value.red { color: #dc2626; }
+    .stat-value.amber { color: #d97706; }
+
+    /* ─── PROGRESS BAR ─── */
+    .threshold-section { padding: 24px 40px; border-bottom: 1px solid #e2e8f0; }
+    .threshold-row { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+    .threshold-label { font-size: 12px; font-weight: 600; color: #475569; width: 100px; flex-shrink: 0; }
+    .threshold-bar { flex: 1; height: 10px; background: #f1f5f9; border-radius: 999px; overflow: hidden; position: relative; }
+    .threshold-fill { height: 100%; border-radius: 999px; transition: width 0.5s; }
+    .threshold-fill.score { background: linear-gradient(90deg, #4f46e5, #7c3aed); }
+    .threshold-fill.pass { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .threshold-val { font-size: 12px; font-weight: 700; color: #1e293b; width: 60px; text-align: right; flex-shrink: 0; }
+
+    /* ─── QUESTION TABLE ─── */
+    .questions-section { padding: 32px 40px; }
+    .section-title {
+      font-size: 16px; font-weight: 700; color: #1e293b;
+      margin-bottom: 16px; padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .q-card {
+      border: 1px solid #e2e8f0; border-radius: 10px;
+      margin-bottom: 10px; overflow: hidden; page-break-inside: avoid;
+    }
+    .q-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+    }
+    .q-num { font-weight: 700; color: #4f46e5; font-size: 12px; }
+    .q-topic { font-size: 11px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
+    .q-badge {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 3px 10px; border-radius: 4px;
+    }
+    .q-badge.correct { background: #d1fae5; color: #059669; }
+    .q-badge.incorrect { background: #fecaca; color: #dc2626; }
+    .q-body { padding: 12px 16px; }
+    .q-text { font-size: 13px; font-weight: 500; color: #1e293b; margin-bottom: 8px; line-height: 1.5; }
+    .q-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .q-answer { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
+    .q-answer-label { color: #64748b; font-weight: 500; white-space: nowrap; }
+    .q-answer-val { font-weight: 700; }
+    .q-answer-val.correct { color: #059669; }
+    .q-answer-val.incorrect { color: #dc2626; }
+    .q-explanation {
+      margin-top: 8px; padding: 8px 12px; background: #eff6ff;
+      border-left: 3px solid #4f46e5; border-radius: 0 6px 6px 0;
+      font-size: 12px; color: #334155;
+    }
+    .q-explanation strong { color: #4f46e5; }
+
+    /* ─── FOOTER ─── */
+    .report-footer {
+      padding: 20px 40px; border-top: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; color: #94a3b8;
+    }
+    .footer-line { font-weight: 500; }
+
+    /* ─── PRINT CONTROLS ─── */
+    .print-controls {
+      max-width: 800px; margin: 20px auto; display: flex; justify-content: center; gap: 12px;
+    }
+    .btn {
+      padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none; display: flex; align-items: center; gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    @media print {
+      body { background: #fff; }
+      .report-container { box-shadow: none; }
+      .print-controls { display: none !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      @page { size: A4; margin: 10mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-controls">
+    <button class="btn btn-primary" onclick="window.print()">📄 Download as PDF</button>
+    <a href="/result/{{ result_id }}" class="btn btn-secondary">← Back to Results</a>
+  </div>
+
+  <div class="report-container" id="reportContent">
+    <!-- HEADER -->
+    <div class="report-header">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-icon">M</div>
+          <div class="brand-name">MockExam Pro</div>
+        </div>
+        <div class="report-badge">Official Report</div>
+      </div>
+      <div class="header-title" id="rptTitle">Assessment Report</div>
+      <div class="header-subtitle" id="rptSubtitle">Loading...</div>
+    </div>
+
+    <!-- CANDIDATE BAR -->
+    <div class="candidate-bar">
+      <div class="candidate-info">
+        <div class="info-item">
+          <span class="info-label">Candidate</span>
+          <span class="info-value" id="rptCandidate">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Date</span>
+          <span class="info-value" id="rptDate">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Report ID</span>
+          <span class="info-value" id="rptId">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCORE -->
+    <div class="score-section">
+      <div class="score-grid">
+        <div class="score-circle-wrap">
+          <div class="score-circle" id="scoreCircle">
+            <div class="score-percent" id="scorePercent">—</div>
+            <div class="score-label">Score</div>
+            <div class="score-status" id="scoreStatus">—</div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-title">Total Score</span>
+            <span class="stat-value blue" id="statScore">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">Correct Answers</span>
+            <span class="stat-value green" id="statCorrect">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">Incorrect Answers</span>
+            <span class="stat-value red" id="statIncorrect">—</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">Time Taken</span>
+            <span class="stat-value amber" id="statTime">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THRESHOLD -->
+    <div class="threshold-section">
+      <div class="threshold-row">
+        <span class="threshold-label">Your Score</span>
+        <div class="threshold-bar"><div class="threshold-fill score" id="barScore"></div></div>
+        <span class="threshold-val" id="barScoreVal">—</span>
+      </div>
+      <div class="threshold-row">
+        <span class="threshold-label">Passing Score</span>
+        <div class="threshold-bar"><div class="threshold-fill pass" id="barPass"></div></div>
+        <span class="threshold-val" id="barPassVal">—</span>
+      </div>
+    </div>
+
+    <!-- QUESTIONS -->
+    <div class="questions-section">
+      <div class="section-title">Detailed Question Review</div>
+      <div id="questionsContainer"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="report-footer">
+      <span class="footer-line">MockExam Pro — Confidential Assessment Report</span>
+      <span class="footer-line" id="rptFooterDate">—</span>
+    </div>
+  </div>
+
+  <script>
+    function getUser() {
+      try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    }
+    async function apiFetch(url) {
+      return fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+    }
+
+    (async function() {
+      const resultId = {{ result_id }};
+      const user = getUser();
+      if (!user) { window.location = '/login'; return; }
+
+      const res = await apiFetch(`/api/results/${resultId}`);
+      if (!res || !res.ok) { document.body.innerHTML = '<p style="text-align:center;padding:40px;">Failed to load report data.</p>'; return; }
+
+      const data = await res.json();
+      const isPassed = data.status === 'pass';
+      const correct = data.questions.filter(q => q.is_correct).length;
+      const incorrect = data.questions.length - correct;
+      const timeMins = Math.floor(data.time_taken / 60);
+      const timeSecs = data.time_taken % 60;
+      const dateStr = new Date(data.submitted_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      // Header
+      document.getElementById('rptTitle').textContent = data.assessment.title;
+      document.getElementById('rptSubtitle').textContent = `Assessment completed on ${dateStr}`;
+
+      // Candidate
+      document.getElementById('rptCandidate').textContent = user.fullname || 'Candidate';
+      document.getElementById('rptDate').textContent = dateStr;
+      document.getElementById('rptId').textContent = `#RPT-${String(resultId).padStart(5, '0')}`;
+
+      // Score circle
+      const circle = document.getElementById('scoreCircle');
+      const pctEl = document.getElementById('scorePercent');
+      const statusEl = document.getElementById('scoreStatus');
+      circle.className = 'score-circle ' + (isPassed ? 'passed' : 'failed');
+      pctEl.textContent = data.percentage + '%';
+      pctEl.className = 'score-percent ' + (isPassed ? 'passed' : 'failed');
+      statusEl.textContent = isPassed ? 'PASSED' : 'FAILED';
+      statusEl.className = 'score-status ' + (isPassed ? 'passed' : 'failed');
+
+      // Stats
+      document.getElementById('statScore').textContent = `${data.score}/${data.assessment.total_marks}`;
+      document.getElementById('statCorrect').textContent = correct;
+      document.getElementById('statIncorrect').textContent = incorrect;
+      document.getElementById('statTime').textContent = `${timeMins}m ${timeSecs}s`;
+
+      // Threshold bars
+      document.getElementById('barScore').style.width = `${data.percentage}%`;
+      document.getElementById('barScoreVal').textContent = `${data.score}/${data.assessment.total_marks}`;
+      const passPercent = (data.assessment.passing_marks / data.assessment.total_marks * 100);
+      document.getElementById('barPass').style.width = `${passPercent}%`;
+      document.getElementById('barPassVal').textContent = `${data.assessment.passing_marks}/${data.assessment.total_marks}`;
+
+      // Questions
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = data.questions.map((q, i) => `
+        <div class="q-card">
+          <div class="q-header">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span class="q-num">Q${i + 1}</span>
+              <span class="q-topic">${q.topic || 'General'}</span>
+              <span style="font-size:11px;color:#94a3b8;">${q.marks} mark${q.marks > 1 ? 's' : ''}</span>
+            </div>
+            <span class="q-badge ${q.is_correct ? 'correct' : 'incorrect'}">${q.is_correct ? '✓ Correct' : '✗ Incorrect'}</span>
+          </div>
+          <div class="q-body">
+            <div class="q-text">${q.question_text}</div>
+            <div class="q-answers">
+              <div class="q-answer">
+                <span class="q-answer-label">Your Answer:</span>
+                <span class="q-answer-val ${q.is_correct ? 'correct' : 'incorrect'}">${q.user_answer || 'Not answered'}</span>
+              </div>
+              ${!q.is_correct ? `
+              <div class="q-answer">
+                <span class="q-answer-label">Correct Answer:</span>
+                <span class="q-answer-val correct">${q.correct_answer}</span>
+              </div>` : ''}
+            </div>
+            ${q.explanation ? `<div class="q-explanation"><strong>Explanation:</strong> ${q.explanation}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      // Footer
+      document.getElementById('rptFooterDate').textContent = `Generated: ${new Date().toLocaleString('en-IN')}`;
+    })();
+  </script>
+</body>
+</html>
