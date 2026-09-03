@@ -6,9 +6,9 @@ class Settings(BaseSettings):
     secret_key: str = "0000"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
-    # Defaulting to PostgreSQL for production readiness
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mockexam"
-    redis_url: str = "redis://localhost:6379/0"
+    # Defaulting to SQLite for simple deployment without external dependencies
+    database_url: str = "sqlite+aiosqlite:///./exam_portal.db"
+    redis_url: str = "redis://localhost:6379/0" # Kept for backward compatibility, but unused
     debug: bool = True
 
     class Config:
