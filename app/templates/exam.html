@@ -55,27 +55,48 @@ body { @apply bg-white overflow-hidden; }
               <li>• Read each question carefully</li>
               <li>• Manage your time wisely</li>
               <li>• Review marked questions before submit</li>
+              <li>• Keep your face clearly visible to the camera</li>
             </ul>
           </div>
           <div class="bg-red-100 border border-red-500/20 p-5 rounded-xl">
             <div class="flex items-center text-red-600 font-bold mb-3"><i class="bi bi-x-circle-fill mr-2"></i>Don'ts</div>
             <ul class="space-y-2 text-sm text-slate-800">
               <li>• Don't switch tabs or windows</li>
-              <li>• Don't minimize the browser</li>
-              <li>• Don't open other applications</li>
+              <li>• Don't look away from the screen</li>
+              <li>• Don't let others enter the camera view</li>
             </ul>
           </div>
         </div>
         
         <div class="bg-amber-100 border border-amber-500/20 p-4 rounded-xl flex items-start">
           <i class="bi bi-exclamation-triangle-fill text-amber-500 text-lg mr-3 mt-0.5"></i>
-          <p class="text-sm text-slate-800"><strong class="text-amber-500">Warning:</strong> Tab switching and window minimizing will be recorded as violations. Excessive violations may result in immediate exam termination.</p>
+          <p class="text-sm text-slate-800"><strong class="text-amber-500">Warning:</strong> AI Proctoring is active. Malicious activities like tab switching or face obstruction will be recorded and may terminate your exam.</p>
         </div>
       </div>
       
       <div class="p-6 border-t border-slate-200 flex justify-end">
         <button @click="startExam()" class="bg-brand-600 hover:bg-brand-500 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition-colors flex items-center">
           <i class="bi bi-play-fill mr-2"></i>Start Exam
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Strict Invigilator Warning Modal -->
+  <div x-show="showViolationModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-red-900/90 backdrop-blur-md p-4" style="display: none;">
+    <div class="bg-white border-4 border-red-500 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden transform transition-all animate-pulse">
+      <div class="p-6 bg-red-500 flex items-center justify-center flex-col text-center">
+        <i class="bi bi-exclamation-octagon-fill text-white text-5xl mb-2"></i>
+        <h2 class="text-2xl font-bold text-white uppercase tracking-wider">Invigilator Alert</h2>
+      </div>
+      <div class="p-8 text-center">
+        <p class="text-xl text-slate-800 font-bold mb-4" x-text="violationMsg"></p>
+        <p class="text-slate-600 mb-6">Please stop any malicious activities. Your camera must clearly show only your face at all times. Repeated violations will result in auto-submission and failure of the exam.</p>
+        <div class="bg-red-50 text-red-600 font-bold p-3 rounded-lg mb-6 text-sm">
+          Total Violations Recorded: <span x-text="violations" class="text-xl ml-1"></span>
+        </div>
+        <button x-show="violations < 3" @click="showViolationModal = false" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors text-lg">
+          I Understand & Will Comply
         </button>
       </div>
     </div>
@@ -262,6 +283,7 @@ function examApp() {
   const assessmentId = {{ assessment_id }};
   return {
     showModal: true,
+    showViolationModal: false,
     examStarted: false,
     assessment: null,
     questions: [],
@@ -270,6 +292,7 @@ function examApp() {
     marked: new Set(),
     timeLeft: 0,
     timerInterval: null,
+    cameraInterval: null,
     violations: 0,
     violationMsg: '',
     startTime: 0,
@@ -311,6 +334,7 @@ function examApp() {
       this.startTime = Date.now();
       
       this.timerInterval = setInterval(() => {
+        // Pause timer if violation modal is NOT showing, otherwise timer continues (punishment)
         this.timeLeft--;
         if(this.timeLeft <= 0) {
           clearInterval(this.timerInterval);
@@ -348,7 +372,9 @@ function examApp() {
     },
 
     async captureAndVerify(video) {
-      if(video.videoWidth === 0) return;
+      // Don't verify if modal is already open
+      if(video.videoWidth === 0 || this.showViolationModal) return;
+      
       const canvas = document.getElementById('snapshotCanvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -364,12 +390,7 @@ function examApp() {
         if(res && res.ok) {
           const data = await res.json();
           if(data.is_violation) {
-            this.violations++;
-            this.violationMsg = data.message;
-            setTimeout(() => this.violationMsg = '', 3000);
-            if(this.ws && this.ws.readyState === 1) {
-              this.ws.send(JSON.stringify({type: 'violation', user: getUser()?.fullname, violation: data.violation_type}));
-            }
+            this.handleViolationWarning(data.message, data.violation_type);
           }
         }
       } catch(e) {}
@@ -407,17 +428,36 @@ function examApp() {
     },
 
     async logViolation(type) {
-      this.violations++;
-      this.violationMsg = `Violation #${this.violations}: ${type.replace('_', ' ')}`;
-      setTimeout(() => this.violationMsg = '', 3000);
+      let niceMsg = type.replace('_', ' ');
+      if(type === 'tab_switch') niceMsg = 'You switched to another tab.';
+      if(type === 'window_blur') niceMsg = 'You minimized or clicked outside the exam window.';
       
       await apiFetch('/api/violations/', {
         method: 'POST',
         body: JSON.stringify({assessment_id: assessmentId, violation_type: type})
       });
       
+      this.handleViolationWarning(niceMsg, type);
+    },
+
+    handleViolationWarning(message, type) {
+      this.violations++;
+      
       if(this.ws && this.ws.readyState === 1) {
         this.ws.send(JSON.stringify({type: 'violation', user: getUser()?.fullname, violation: type}));
+      }
+
+      if (this.violations >= 3) {
+        this.violationMsg = "CRITICAL: MAXIMUM VIOLATIONS REACHED. YOUR EXAM IS BEING AUTO-SUBMITTED.";
+        this.showViolationModal = true;
+        
+        // Hide the dismiss button and auto submit after 3 seconds
+        setTimeout(() => {
+          this.submitExam();
+        }, 3000);
+      } else {
+        this.violationMsg = message;
+        this.showViolationModal = true;
       }
     },
 
