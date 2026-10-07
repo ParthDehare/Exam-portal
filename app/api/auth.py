@@ -27,6 +27,16 @@ async def register(data: UserRegister, response: Response, db: AsyncSession = De
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    
+    # Send Welcome Email
+    from app.services.email import email_service
+    html_content = f"""
+    <h2>Welcome to MockExam Pro, {user.fullname}!</h2>
+    <p>Your account has been successfully created as a <strong>{user.role}</strong>.</p>
+    <p>You can now log in and start using the platform.</p>
+    """
+    await email_service.send_email(to_email=user.email, subject="Welcome to MockExam Pro", html_content=html_content)
+    
     token = create_access_token({"sub": user.email, "role": user.role})
     _set_auth_cookie(response, token)
     return Token(access_token=token, token_type="bearer", user=UserOut.model_validate(user))

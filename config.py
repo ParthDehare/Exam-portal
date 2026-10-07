@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     # Defaulting to SQLite for simple deployment without external dependencies
     database_url: str = "sqlite+aiosqlite:///./exam_portal.db"
     redis_url: str = "redis://localhost:6379/0" # Kept for backward compatibility, but unused
+    gemini_api_key: str = ""
     debug: bool = True
 
     class Config:

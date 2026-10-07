@@ -46,6 +46,44 @@ async def create_question(data: QuestionCreate, db: AsyncSession = Depends(get_d
     await db.refresh(question)
     return question
 
+class AIGenerateRequest(BaseModel):
+    assessment_id: int
+    topic: str
+    difficulty: str = "medium"
+    count: int = 5
+    auto_save: bool = False
+
+@router.post("/ai/generate", status_code=200)
+async def generate_ai_questions(data: AIGenerateRequest, db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    from app.services.ai import generate_questions
+    
+    generated = generate_questions(topic=data.topic, difficulty=data.difficulty, count=data.count)
+    
+    saved_questions = []
+    if data.auto_save:
+        for q_data in generated:
+            q = Question(
+                assessment_id=data.assessment_id,
+                question_text=q_data["question_text"],
+                question_type=QuestionType.mcq,
+                option_a=q_data["option_a"],
+                option_b=q_data["option_b"],
+                option_c=q_data["option_c"],
+                option_d=q_data["option_d"],
+                correct_answer=q_data["correct_answer"],
+                explanation=q_data["explanation"],
+                marks=1,
+                topic=data.topic
+            )
+            db.add(q)
+            saved_questions.append(q)
+        await db.commit()
+        for sq in saved_questions:
+            await db.refresh(sq)
+        return {"message": f"Generated and saved {len(saved_questions)} questions.", "questions": saved_questions}
+    
+    return {"message": "Generated questions successfully.", "questions": generated}
+
 @router.put("/{question_id}", response_model=QuestionOut)
 async def update_question(question_id: int, data: QuestionCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     result = await db.execute(select(Question).where(Question.id == question_id))
