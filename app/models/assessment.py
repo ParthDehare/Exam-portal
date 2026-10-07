@@ -14,6 +14,8 @@ class Assessment(Base):
     difficulty = Column(String(20), default="medium")
     category = Column(String(100))
     is_active = Column(Boolean, default=True)
+    is_premium = Column(Boolean, default=False)
+    price = Column(Integer, default=0) # Stored in cents/paisa
     created_at = Column(DateTime, default=datetime.utcnow)
 
     questions = relationship("Question", back_populates="assessment", cascade="all, delete")

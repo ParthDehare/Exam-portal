@@ -117,7 +117,12 @@
                       :class="{'bg-emerald-100 text-emerald-700': ass.difficulty==='easy', 'bg-amber-100 text-amber-700': ass.difficulty==='medium', 'bg-red-100 text-red-700': ass.difficulty==='hard'}"
                       x-text="ass.difficulty"></span>
               </div>
-              <h3 class="text-lg font-bold text-slate-900 mb-2" x-text="ass.title"></h3>
+              <h3 class="text-lg font-bold text-slate-900 mb-2 flex items-center">
+                <span x-text="ass.title"></span>
+                <span x-show="ass.is_premium" class="ml-2 bg-amber-100 text-amber-600 text-xs px-2 py-0.5 rounded border border-amber-300 font-bold flex items-center">
+                  <i class="bi bi-currency-dollar mr-0.5"></i>PREMIUM
+                </span>
+              </h3>
               <p class="text-sm text-slate-600 mb-6 flex-1 line-clamp-2" x-text="ass.description || 'No description available.'"></p>
               
               <div class="grid grid-cols-3 gap-2 text-xs text-slate-600 mb-6 border-y border-slate-300 py-3">
@@ -126,11 +131,58 @@
                 <div class="text-center"><i class="bi bi-check-circle block mb-1 text-slate-500 text-sm"></i><span x-text="ass.passing_marks + ' pass'"></span></div>
               </div>
               
-              <a :href="'/exam/' + ass.id" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-lg transition-colors text-center shadow-md shadow-brand-500/20">
-                Start Assessment <i class="bi bi-arrow-right ml-1"></i>
-              </a>
+              <button @click="startExam(ass)" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-lg transition-colors text-center shadow-md shadow-brand-500/20">
+                <span x-show="!ass.is_premium">Start Assessment <i class="bi bi-arrow-right ml-1"></i></span>
+                <span x-show="ass.is_premium">Unlock Premium Exam ($<span x-text="(ass.price / 100).toFixed(2)"></span>) <i class="bi bi-lock-fill ml-1"></i></span>
+              </button>
             </div>
           </template>
+        </div>
+      </div>
+
+      <!-- Mock Payment Modal -->
+      <div x-show="showPaymentModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all" @click.away="showPaymentModal = false">
+          <div class="bg-slate-50 p-6 border-b border-slate-200 text-center">
+            <div class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
+              <i class="bi bi-credit-card-fill text-2xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 mb-1">Complete Payment</h2>
+            <p class="text-slate-500 text-sm" x-text="selectedPremiumExam?.title"></p>
+          </div>
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-6 py-3 border-y border-slate-100">
+              <span class="text-slate-600 font-medium">Total Amount</span>
+              <span class="text-2xl font-bold text-slate-900">$<span x-text="selectedPremiumExam ? (selectedPremiumExam.price / 100).toFixed(2) : '0.00'"></span></span>
+            </div>
+            <div class="space-y-3 mb-6">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">Card Number</label>
+                <div class="flex items-center border border-slate-300 rounded-lg bg-slate-50 px-3 py-2 text-slate-500">
+                  <i class="bi bi-credit-card mr-2 text-brand-500"></i>
+                  <span>•••• •••• •••• 4242</span>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">Expiry</label>
+                  <div class="border border-slate-300 rounded-lg bg-slate-50 px-3 py-2 text-slate-500">12/26</div>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">CVC</label>
+                  <div class="border border-slate-300 rounded-lg bg-slate-50 px-3 py-2 text-slate-500">•••</div>
+                </div>
+              </div>
+            </div>
+            
+            <p class="text-xs text-center text-slate-500 mb-4"><i class="bi bi-lock-fill mr-1"></i>This is a mock Stripe sandbox environment.</p>
+            
+            <button @click="processPayment()" :disabled="isProcessingPayment" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-colors flex items-center justify-center">
+              <span x-show="!isProcessingPayment">Pay & Unlock</span>
+              <span x-show="isProcessingPayment"><i class="bi bi-arrow-repeat animate-spin mr-2"></i>Processing...</span>
+            </button>
+            <button @click="showPaymentModal = false" class="w-full mt-2 text-slate-500 hover:text-slate-700 font-medium py-2 transition-colors">Cancel</button>
+          </div>
         </div>
       </div>
 
@@ -202,6 +254,11 @@ function dashboardApp() {
     assessments: [],
     results: [],
     
+    // Payment flow
+    showPaymentModal: false,
+    selectedPremiumExam: null,
+    isProcessingPayment: false,
+    
     // Navigation config
     navItems: [
       { id: 'overview', name: 'Overview', icon: 'bi-grid-fill' },
@@ -218,6 +275,25 @@ function dashboardApp() {
         if(val === 'assessments' && this.assessments.length === 0) await this.loadAssessments();
         if(val === 'results' && this.results.length === 0) await this.loadResults();
       });
+    },
+
+    startExam(ass) {
+      if(ass.is_premium) {
+        this.selectedPremiumExam = ass;
+        this.showPaymentModal = true;
+      } else {
+        window.location = '/exam/' + ass.id;
+      }
+    },
+
+    async processPayment() {
+      this.isProcessingPayment = true;
+      // Simulate network call to payment gateway (Stripe)
+      await new Promise(r => setTimeout(r, 1500));
+      this.isProcessingPayment = false;
+      this.showPaymentModal = false;
+      alert(`Payment of $${(this.selectedPremiumExam.price/100).toFixed(2)} successful! Unlocking exam...`);
+      window.location = '/exam/' + this.selectedPremiumExam.id;
     },
 
     async loadOverview() {

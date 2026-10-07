@@ -26,8 +26,9 @@ async def seed():
         # Assessments
         a1 = Assessment(title="Python Fundamentals", description="Test your Python basics",
                         duration=30, total_marks=10, passing_marks=6, difficulty="easy", category="Programming")
-        a2 = Assessment(title="Data Structures & Algorithms", description="DSA concepts assessment",
-                        duration=60, total_marks=20, passing_marks=12, difficulty="hard", category="Computer Science")
+        a2 = Assessment(title="Data Structures & Algorithms (Premium)", description="DSA concepts assessment (Requires payment)",
+                        duration=60, total_marks=20, passing_marks=12, difficulty="hard", category="Computer Science",
+                        is_premium=True, price=999) # 999 = $9.99
         a3 = Assessment(title="Web Development Basics", description="HTML, CSS, JS fundamentals",
                         duration=45, total_marks=15, passing_marks=9, difficulty="medium", category="Web")
         db.add_all([a1, a2, a3])

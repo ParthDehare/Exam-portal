@@ -139,18 +139,31 @@ body { @apply bg-white overflow-hidden; }
           
           <template x-if="currentQ">
             <div class="bg-slate-50/40 border border-slate-300 rounded-2xl p-8 shadow-xl">
-              <!-- Tags -->
-              <div class="flex flex-wrap items-center gap-3 mb-6">
-                <span class="bg-gradient-to-r from-brand-600 to-brand-500 text-slate-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Q<span x-text="currentIdx+1"></span></span>
-                <span class="bg-brand-100 text-brand-600 px-3 py-1 rounded-full text-xs font-semibold" x-text="currentQ.topic || 'General'"></span>
-                <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-semibold" x-text="currentQ.marks + (currentQ.marks > 1 ? ' marks' : ' mark')"></span>
-                <span x-show="marked.has(currentQ.id)" class="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center">
-                  <i class="bi bi-bookmark-fill mr-1"></i>Marked
-                </span>
+              <!-- Tags and Language -->
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class="bg-gradient-to-r from-brand-600 to-brand-500 text-slate-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Q<span x-text="currentIdx+1"></span></span>
+                  <span class="bg-brand-100 text-brand-600 px-3 py-1 rounded-full text-xs font-semibold" x-text="currentQ.topic || 'General'"></span>
+                  <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-semibold" x-text="currentQ.marks + (currentQ.marks > 1 ? ' marks' : ' mark')"></span>
+                  <span x-show="marked.has(currentQ.id)" class="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center">
+                    <i class="bi bi-bookmark-fill mr-1"></i>Marked
+                  </span>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                  <select x-model="selectedLanguage" @change="translateQuestion()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="en">English (Default)</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="hi">Hindi</option>
+                    <option value="zh">Chinese</option>
+                  </select>
+                  <i x-show="isTranslating" class="bi bi-arrow-repeat animate-spin text-brand-500"></i>
+                </div>
               </div>
               
               <!-- Question Text -->
-              <p class="text-xl text-slate-900 font-medium leading-relaxed mb-8" x-text="currentQ.question_text"></p>
+              <p class="text-xl text-slate-900 font-medium leading-relaxed mb-8" x-text="translatedQText || currentQ.question_text"></p>
               
               <!-- Options -->
               <div class="space-y-3">
@@ -297,6 +310,11 @@ function examApp() {
     violationMsg: '',
     startTime: 0,
     ws: null,
+    
+    // Translation
+    selectedLanguage: 'en',
+    isTranslating: false,
+    translatedQText: null,
 
     get currentQ() {
       return this.questions[this.currentIdx] || null;
@@ -316,6 +334,27 @@ function examApp() {
           this.timeLeft = this.assessment.duration * 60;
         }
       } catch(e) { console.error("Error loading exam data"); }
+    },
+
+    async translateQuestion() {
+      if(this.selectedLanguage === 'en' || !this.currentQ) {
+        this.translatedQText = null;
+        return;
+      }
+      this.isTranslating = true;
+      try {
+        const res = await apiFetch('/api/questions/ai/translate', {
+          method: 'POST',
+          body: JSON.stringify({text: this.currentQ.question_text, target_language: this.selectedLanguage})
+        });
+        if(res && res.ok) {
+          const data = await res.json();
+          this.translatedQText = data.translated_text;
+        }
+      } catch(e) {
+        console.error("Translation failed");
+      }
+      this.isTranslating = false;
     },
 
     getOptions(q) {
@@ -422,6 +461,8 @@ function examApp() {
       const next = this.currentIdx + dir;
       if(next >= 0 && next < this.questions.length) {
         this.currentIdx = next;
+        this.translatedQText = null;
+        if(this.selectedLanguage !== 'en') this.translateQuestion();
       } else if (next >= this.questions.length) {
         this.confirmSubmit();
       }

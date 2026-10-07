@@ -84,6 +84,33 @@ async def generate_ai_questions(data: AIGenerateRequest, db: AsyncSession = Depe
     
     return {"message": "Generated questions successfully.", "questions": generated}
 
+@router.post("/ai/translate", status_code=200)
+async def translate_question(data: dict, current_user: User = Depends(get_current_user)):
+    # data should contain 'text' and 'target_language'
+    text = data.get("text")
+    target_lang = data.get("target_language")
+    
+    if not text or not target_lang:
+        raise HTTPException(status_code=400, detail="Missing text or target_language")
+        
+    from config import settings
+    from google import genai
+    
+    if not settings.gemini_api_key:
+        return {"translated_text": f"[{target_lang}] {text}"} # Mock fallback
+        
+    try:
+        client = genai.Client(api_key=settings.gemini_api_key)
+        prompt = f"Translate the following exam question text into {target_lang}. Preserve the technical accuracy and meaning exactly. Return ONLY the translated text without any explanation, markdown, or quotes: \n\n{text}"
+        
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
+        return {"translated_text": response.text.strip()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/{question_id}", response_model=QuestionOut)
 async def update_question(question_id: int, data: QuestionCreate, db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     result = await db.execute(select(Question).where(Question.id == question_id))
