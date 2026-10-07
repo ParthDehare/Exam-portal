@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from config import settings
 from app.database.db import init_db, get_db
-from app.api import auth, assessments, questions, results, violations, dashboard, admin
+from app.api import auth, assessments, questions, results, violations, dashboard, admin, analytics
 from app.websocket.manager import manager
 from app.services.auth import get_current_user
 from app.models.user import User
@@ -43,7 +43,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 # Register API routers
 for router in [auth.router, assessments.router, questions.router,
-               results.router, violations.router, dashboard.router, admin.router]:
+               results.router, violations.router, dashboard.router, admin.router, analytics.router]:
     app.include_router(router)
 
 # ── Page Routes ──────────────────────────────────────────────────────────────

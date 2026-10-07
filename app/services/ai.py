@@ -41,3 +41,27 @@ def generate_questions(topic: str, difficulty: str, count: int = 5) -> List[dict
         return data.get("questions", [])
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Generation failed: {str(e)}")
+
+def generate_learning_plan(assessment_title: str, wrong_answers: list) -> str:
+    if not settings.gemini_api_key:
+        return "AI Learning Plan cannot be generated because GEMINI_API_KEY is not configured in the server environment."
+
+    client = genai.Client(api_key=settings.gemini_api_key)
+    
+    # Summarize wrong topics
+    topics = {}
+    for w in wrong_answers:
+        t = w.get("topic", "General")
+        topics[t] = topics.get(t, 0) + 1
+        
+    prompt = f"The student just took a test called '{assessment_title}'. They made mistakes in the following topics: {', '.join([f'{t} ({c} errors)' for t, c in topics.items()])}. Based on this, write a concise, encouraging 3-step personalized study plan to help them improve. Format it in clean HTML (using <ul>, <li>, <strong>, etc. without markdown blocks like ```html)."
+    
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
+        return response.text
+    except Exception as e:
+        logger.error(f"AI Plan Generation failed: {e}")
+        return "Sorry, we couldn't generate a learning plan at this time."
